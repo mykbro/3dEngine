@@ -10,14 +10,13 @@ namespace _3dGraphics.Graphics
     public class Camera
     {
         private int _width;
-        private int _height;       
+        private int _height;
         private float _fov;
         private float _zNear;
         private float _zFar;
         private Vector3 _position;
-        private Vector3 _positionLowBits;   //used in kahan algorithm for moving by small deltas
-        private Vector3 _angles;            //thetaX -> Pitch, thetaY -> Yaw, thetaZ -> Roll
-        private Vector3 _upDirection;      
+        private Vector3 _positionLowBits;       //used in kahan algorithm for moving by small deltas
+        private Vector3 _orientation;           //thetaX -> Pitch, thetaY -> Yaw, thetaZ -> Roll        
 
         //PROPERTIES
         public int ScreenWidth { get => _width; set => _width = value; }
@@ -26,6 +25,7 @@ namespace _3dGraphics.Graphics
         public float FOV { get => _fov; set => _fov = value; }
         public float ZNear { get => _zNear; set => _zNear = value; }
         public float ZFar { get => _zFar; set => _zFar = value; }
+        public Vector3 Angles { get => _orientation; set => _orientation = value; }
 
 
         public Vector3 Position
@@ -81,7 +81,7 @@ namespace _3dGraphics.Graphics
         }
 
         //CONSTRUCTORS
-        public Camera(int w, int h, float fov, float zNear, float zFar, Vector3 pos, Vector3 forwardDir, Vector3 upDir) 
+        public Camera(int w, int h, float fov, float zNear, float zFar, Vector3 pos, Vector3 orientation) 
         {
             _width = w;
             _height = h;
@@ -90,11 +90,11 @@ namespace _3dGraphics.Graphics
             _zFar = zFar;
             _position = pos;
             _positionLowBits = Vector3.Zero;
-            _forwardDirection = forwardDir;
-            _upDirection = upDir;           
+            _orientation = orientation;
+
         }
 
-        public Camera(int w, int h, float fov, float zNear, float zFar) : this(w, h, fov, zNear, zFar, Vector3.Zero, Vector3.UnitZ, Vector3.UnitY) { }
+        public Camera(int w, int h, float fov, float zNear, float zFar) : this(w, h, fov, zNear, zFar, Vector3.Zero, Vector3.Zero) { }
 
         //COPY CONSTRUCTOR
         public Camera(Camera c) 
@@ -106,14 +106,22 @@ namespace _3dGraphics.Graphics
             _zFar = c._zFar;
             _position = c._position;
             _positionLowBits = c._positionLowBits;
-            _forwardDirection = c._forwardDirection;
-            _upDirection = c._upDirection;            
+            _orientation = c._orientation;
         }
 
         public void MoveBy(Vector3 deltaPos)
         {
             //we use kahan algorithm
             Vector3 adjustedDeltaPos = deltaPos - _positionLowBits;
+            Vector3 newPos = _position + adjustedDeltaPos;
+            _positionLowBits = (newPos - _position) - adjustedDeltaPos;
+            _position = newPos;
+        }
+
+        public void RotateBy(Vector3 deltaTheta)
+        {
+            //we use kahan algorithm
+            Vector3 adjustedDeltaPos = deltaTheta - _positionLowBits;
             Vector3 newPos = _position + adjustedDeltaPos;
             _positionLowBits = (newPos - _position) - adjustedDeltaPos;
             _position = newPos;
