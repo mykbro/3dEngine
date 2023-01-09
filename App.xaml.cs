@@ -25,14 +25,19 @@ namespace _3dGraphics
         private World _world;
         private MainWindow _mainWindow;
         private Vector3 _cameraForwardMovement;     // 0 or 1
-        private Vector3 _cameraBackwardMovement;    // 0 or 1      
+        private Vector3 _cameraBackwardMovement;    // 0 or 1
+        private Vector3 _cameraPositiveRotation;
+        private Vector3 _cameraNegativeRotation;
 
         private void Application_Startup(object sender, StartupEventArgs e)
         {
 
             _mainWindow = new MainWindow(StartMovingCameraLeft, StopMovingCameraLeft, StartMovingCameraRight, StopMovingCameraRight,
                                         StartMovingCameraForward, StopMovingCameraForward, StartMovingCameraBackward, StopMovingCameraBackward,
-                                        StartMovingCameraUp, StopMovingCameraUp, StartMovingCameraDown, StopMovingCameraDown);
+                                        StartMovingCameraUp, StopMovingCameraUp, StartMovingCameraDown, StopMovingCameraDown,
+                                        StartPitchingCameraDown, StopPitchingCameraDown, StartPitchingCameraUp, StopPitchingCameraUp,
+                                        StartYawingCameraRight, StopYawingCameraRight, StartYawingCameraLeft, StopYawingCameraLeft,
+                                        StartRollingCameraLeft, StopRollingCameraLeft, StartRollingCameraRight, StopRollingCameraRight);
             Window consoleWindow = new ConsoleWindow();
 
             Canvas windowCanvas = _mainWindow.Content as Canvas;
@@ -42,7 +47,7 @@ namespace _3dGraphics
             //consoleWindow.Show();
 
             //CameraTest.Run();
-            KeepRenderingAsync();
+            StartEngineLoopAsync();
         }
 
         private void CreateWorld(int screenWidth, int screenHeight)
@@ -78,7 +83,13 @@ namespace _3dGraphics
 
             Mesh cube = new Mesh(vertices, triangles, Vector3.Zero, 1f);
 
-            _world = new World(screenWidth, screenHeight, 90f, 0.1f, 10f, 5f);
+            float FOV = 90f;
+            float zNear = 0.1f;
+            float zFar = 10f;
+            float speedKmh = 5f;
+            float rotSpeedDegSec = 36f;
+
+            _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec);
             _world.Meshes.Add(cube);
             //_world.Camera.VelocityDirection = Vector3.Normalize(new Vector3(0.1f, -0.1f, -1f));
             //_world.Meshes[0].MoveBy(new Vector3(-2f,0f,5f));
@@ -164,7 +175,7 @@ namespace _3dGraphics
             return Task.Run(() => Render());
         }
 
-        public async void KeepRenderingAsync()
+        public async void StartEngineLoopAsync()
         {
             Stopwatch globalWatch = Stopwatch.StartNew();
             double lastCycleTimeInSecs = 0.0;
@@ -179,7 +190,9 @@ namespace _3dGraphics
                 if (cameraMovement != Vector3.Zero)
                     cameraMovement = Vector3.Normalize(cameraMovement);
 
-                _world.Update(deltaTimeInSecs, cameraMovement);
+                Vector3 cameraRotation = _cameraPositiveRotation - _cameraNegativeRotation;
+
+                _world.Update(deltaTimeInSecs, cameraMovement, cameraRotation);
                 await RenderAsync(); 
                 await Task.Delay(1);        //to keep the FPS at bay
 
@@ -190,8 +203,8 @@ namespace _3dGraphics
             }
         }
 
-
-
+        #region MOVEMENT
+        /// START MOVING
         private void StartMovingCameraRight() 
         {
             _cameraForwardMovement.X = 1f;
@@ -222,7 +235,7 @@ namespace _3dGraphics
             _cameraBackwardMovement.Z = 1f;
         }
 
-        /// STOP
+        /// STOP MOVING
         
         private void StopMovingCameraRight()
         {
@@ -253,11 +266,72 @@ namespace _3dGraphics
         {
             _cameraBackwardMovement.Z = 0f;
         }
+        #endregion
+
+        #region ROTATION
+        private void StartPitchingCameraUp()
+        {
+            _cameraPositiveRotation.X = 1f;
+        }
+
+        private void StartPitchingCameraDown()
+        {
+            _cameraNegativeRotation.X = 1f;
+        }
+
+        private void StartYawingCameraLeft()
+        {
+            _cameraPositiveRotation.Y = 1f;
+        }
+
+        private void StartYawingCameraRight()
+        {
+            _cameraNegativeRotation.Y = 1f;
+        }
+        
+        private void StopPitchingCameraUp()
+        {
+            _cameraPositiveRotation.X = 0f;
+        }
+
+        private void StopPitchingCameraDown()
+        {
+            _cameraNegativeRotation.X = 0f;
+        }
 
 
+        private void StopYawingCameraLeft()
+        {
+            _cameraPositiveRotation.Y = 0f;
+        }
 
+        private void StopYawingCameraRight()
+        {
+            _cameraNegativeRotation.Y = 0f;
+        }
 
+        
+        private void StartRollingCameraRight()  //we use Z increasing in front of us so rotating clockwise means rotating Right
+        {
+            _cameraPositiveRotation.Z = 1f;
+        }
 
+        private void StartRollingCameraLeft()
+        {
+            _cameraNegativeRotation.Z = 1f;
+        }
+
+        private void StopRollingCameraRight()
+        {
+            _cameraPositiveRotation.Z = 0f;
+        }
+
+        private void StopRollingCameraLeft()
+        {
+            _cameraNegativeRotation.Z = 0f;
+        }
+
+        #endregion
 
 
 

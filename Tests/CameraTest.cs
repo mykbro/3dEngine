@@ -17,7 +17,7 @@ namespace _3dGraphics.Tests
             int numCycles = 100000;
 
             Vector3 pos = Vector3.One * p;
-            Camera c = new Camera(16, 9, 45f, 0.5f, 50f, pos, Vector3.UnitZ, Vector3.UnitY);
+            Camera c = new Camera(16, 9, 45f, 0.5f, 50f);
             float deltaForEachCycle = delta / numCycles;
             Vector3 deltaVec = Vector3.One * deltaForEachCycle;
 

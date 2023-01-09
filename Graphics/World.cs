@@ -11,19 +11,22 @@ namespace _3dGraphics.Graphics
     {
         private readonly List<Mesh> _meshes;
         private readonly Camera _camera;
-        private float _cameraSpeedKmh;
+        private float _cameraSpeedMetersSec;
+        private float _cameraRotSpeedRadSec;
 
         //public IEnumerable<Mesh> Meshes => _meshes.AsEnumerable();
         //public Camera Camera => new Camera(_camera);
         public List<Mesh> Meshes => _meshes;
         public Camera Camera => _camera;
-        public float CameraSpeedKmh { get => _cameraSpeedKmh; set => _cameraSpeedKmh = value; }
+        public float CameraSpeedKmh { get => _cameraSpeedMetersSec * 3.6f; set => _cameraSpeedMetersSec = value / 3.6f; }
+        public float CameraRotSpeedDegSec { get => Utility.RadToDeg(_cameraRotSpeedRadSec); set => Utility.DegToRad(value); }
 
-        public World(int screenWidth, int screenHeight, float cameraFov, float cameraZNear, float cameraZFar, float cameraSpeedKmh)
+        public World(int screenWidth, int screenHeight, float cameraFov, float cameraZNear, float cameraZFar, float cameraSpeedKmh, float cameraRotSpeedDegSec)
         {
             _meshes = new List<Mesh>();
             _camera = new Camera(screenWidth, screenHeight, cameraFov, cameraZNear, cameraZFar);
-            _cameraSpeedKmh = cameraSpeedKmh;
+            _cameraSpeedMetersSec = cameraSpeedKmh / 3.6f;
+            _cameraRotSpeedRadSec = Utility.DegToRad(cameraRotSpeedDegSec);
         }
         
         //Copy Constructor
@@ -31,13 +34,19 @@ namespace _3dGraphics.Graphics
         {                
             _meshes = new List<Mesh>(w._meshes);
             _camera = new Camera(w._camera);
-            _cameraSpeedKmh = w._cameraSpeedKmh;
+            _cameraSpeedMetersSec = w._cameraSpeedMetersSec;
+            _cameraRotSpeedRadSec = w._cameraRotSpeedRadSec;
         }
         
-        public void Update(float dTimeInSecs, Vector3 cameraVelocityNormalized)
+        public void Update(float dTimeInSecs, Vector3 cameraVelocityNormalized, Vector3 cameraRotation)
         {                        
-            Vector3 deltaP = cameraVelocityNormalized * (dTimeInSecs * _cameraSpeedKmh / 3.6f);
+            Vector3 deltaP = cameraVelocityNormalized * (dTimeInSecs * _cameraSpeedMetersSec);
+            Matrix4x4 XYRotationMatrix = _camera.InverseRotationXMatrix * _camera.InverseRotationYMatrix * _camera.InverseRotationZMatrix;
+            deltaP = Vector3.Transform(deltaP, XYRotationMatrix);
             _camera.MoveBy(deltaP);
+
+            Vector3 deltaTheta = cameraRotation * (dTimeInSecs * _cameraRotSpeedRadSec); 
+            _camera.RotateBy(deltaTheta);
         }
 
         /*

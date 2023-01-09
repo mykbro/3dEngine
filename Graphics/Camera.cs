@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Numerics;
+using System.Windows.Navigation;
 
 namespace _3dGraphics.Graphics
 {
@@ -14,9 +15,8 @@ namespace _3dGraphics.Graphics
         private float _fov;
         private float _zNear;
         private float _zFar;
-        private Vector3 _position;
-        private Vector3 _positionLowBits;       //used in kahan algorithm for moving by small deltas
-        private Vector3 _orientation;           //thetaX -> Pitch, thetaY -> Yaw, thetaZ -> Roll        
+        private DoubleVector3 _position;       
+        private DoubleVector3 _orientation;           //thetaX -> Pitch, thetaY -> Yaw, thetaZ -> Roll        
 
         //PROPERTIES
         public int ScreenWidth { get => _width; set => _width = value; }
@@ -25,26 +25,27 @@ namespace _3dGraphics.Graphics
         public float FOV { get => _fov; set => _fov = value; }
         public float ZNear { get => _zNear; set => _zNear = value; }
         public float ZFar { get => _zFar; set => _zFar = value; }
-        public Vector3 Angles { get => _orientation; set => _orientation = value; }
-
-
-        public Vector3 Position
-        {
-            get => _position;
-            set
-            {
-                _position = value;
-                _positionLowBits = Vector3.Zero;    //we need to reset this accumulator when moving to a specific position
-            }
-        }        
+        public Vector3 Orientation { get => _orientation.ToVector3(); set => _orientation = new DoubleVector3(value); }
+        public Vector3 Position { get => _position.ToVector3(); set => _position = new DoubleVector3(value); }           
+                
 
         public Matrix4x4 WorldToCameraMatrix
         {
             get
             {
-                return Matrix4x4.CreateTranslation(-_position.X, -_position.Y, -_position.Z);  
+                Vector3 pos = Position;
+                Matrix4x4 translMatrix = Matrix4x4.CreateTranslation(-pos.X, -pos.Y, -pos.Z);
+                Matrix4x4 pitchMatrix = Matrix4x4.CreateRotationX(Orientation.X);
+                Matrix4x4 yawMatrix = Matrix4x4.CreateRotationY(Orientation.Y);
+                Matrix4x4 rollMatrix = Matrix4x4.CreateRotationZ(Orientation.Z);
+
+                return translMatrix * rollMatrix * yawMatrix * pitchMatrix;   
             }
         }
+
+        public Matrix4x4 InverseRotationXMatrix => Matrix4x4.CreateRotationX(-Orientation.X);
+        public Matrix4x4 InverseRotationYMatrix => Matrix4x4.CreateRotationY(-Orientation.Y);
+        public Matrix4x4 InverseRotationZMatrix => Matrix4x4.CreateRotationZ(-Orientation.Z);
 
         public Matrix4x4 ProjectionMatrix
         {
@@ -88,10 +89,8 @@ namespace _3dGraphics.Graphics
             _fov = fov;
             _zNear = zNear;
             _zFar = zFar;
-            _position = pos;
-            _positionLowBits = Vector3.Zero;
-            _orientation = orientation;
-
+            _position = new DoubleVector3(pos);
+            _orientation = new DoubleVector3(orientation);
         }
 
         public Camera(int w, int h, float fov, float zNear, float zFar) : this(w, h, fov, zNear, zFar, Vector3.Zero, Vector3.Zero) { }
@@ -104,27 +103,18 @@ namespace _3dGraphics.Graphics
             _fov = c._fov;
             _zNear = c._zNear;
             _zFar = c._zFar;
-            _position = c._position;
-            _positionLowBits = c._positionLowBits;
+            _position = c._position;            
             _orientation = c._orientation;
         }
 
         public void MoveBy(Vector3 deltaPos)
         {
-            //we use kahan algorithm
-            Vector3 adjustedDeltaPos = deltaPos - _positionLowBits;
-            Vector3 newPos = _position + adjustedDeltaPos;
-            _positionLowBits = (newPos - _position) - adjustedDeltaPos;
-            _position = newPos;
+            _position += new DoubleVector3(deltaPos);
         }
 
         public void RotateBy(Vector3 deltaTheta)
         {
-            //we use kahan algorithm
-            Vector3 adjustedDeltaPos = deltaTheta - _positionLowBits;
-            Vector3 newPos = _position + adjustedDeltaPos;
-            _positionLowBits = (newPos - _position) - adjustedDeltaPos;
-            _position = newPos;
+            _orientation += new DoubleVector3(deltaTheta);
         }
 
     }
