@@ -88,7 +88,7 @@ namespace _3dGraphics
             //we create Vertex[] from Vector3[]
             var vertices = positions.Select<Vector3, Vertex>((pos) => new Vertex(pos));
 
-            Mesh cube = new Mesh(vertices, triangles, Vector3.Zero, 1f);
+            Mesh cube = new Mesh(vertices, triangles);
 
             float FOV = 90f;
             float zNear = 0.1f;
@@ -97,17 +97,22 @@ namespace _3dGraphics
             float rotSpeedDegSec = 60f;
             float fovIncSpeedDegSec = 10f;
 
+            //we create the world and populate it with objects
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
-            _world.Meshes.Add(cube);
-            _world.Meshes.Add(new Mesh(cube));
-            _world.Meshes.Add(new Mesh(cube));
-            _world.Meshes.Add(new Mesh(cube));
-            //_world.Meshes.Add(cube);
-            //_world.Meshes.Add(cube);            
-            _world.Meshes[1].Position = new Vector3(0, 0f, 5f);
-            _world.Meshes[2].Position = new Vector3(5, 0f, 5f);
-            _world.Meshes[3].Position = new Vector3(5, 0f, 0f);
-          
+            for(int i=0; i<8; i++)
+            {
+                _world.Objects.Add(new WorldObject(cube, Vector3.Zero, 1f));
+            }
+               
+            //we move the objects  
+            _world.Objects[1].Position = new Vector3(0, 0f, 5f);
+            _world.Objects[2].Position = new Vector3(5, 0f, 5f);
+            _world.Objects[3].Position = new Vector3(5, 0f, 0f);
+            _world.Objects[4].Position = new Vector3(0, 5f, 0f);
+            _world.Objects[5].Position = new Vector3(0, 5f, 5f);
+            _world.Objects[6].Position = new Vector3(5, 5f, 5f);
+            _world.Objects[7].Position = new Vector3(5, 5f, 0f);
+
             //Render();
         }
 
@@ -134,15 +139,15 @@ namespace _3dGraphics
             }
             */
 
-            for (int i = 0; i < _world.Meshes.Count; i++)
+            for (int i = 0; i < _world.Objects.Count; i++)
             {
-                Mesh mesh = _world.Meshes[i];
+                WorldObject wObject = _world.Objects[i];
 
                 //initialize the Vec4
-                Vector4[] vertices4D = new Vector4[mesh.VertexCount];
-                for (int v = 0; v < mesh.VertexCount; v++)
+                Vector4[] vertices4D = new Vector4[wObject.Mesh.VertexCount];
+                for (int v = 0; v < wObject.Mesh.VertexCount; v++)
                 {
-                    vertices4D[v] = mesh.GetVertex(v).Position4D;
+                    vertices4D[v] = wObject.Mesh.GetVertex(v).Position4D;
                 }
 
                 /*
@@ -154,7 +159,7 @@ namespace _3dGraphics
                 */
 
                 //calculate global Matrix
-                Matrix4x4 localToWorld = mesh.LocalToWorldMatrix;
+                Matrix4x4 localToWorld = wObject.LocalToWorldMatrix;
                 Matrix4x4 globalMatrix = localToWorld * worldToProj;
 
                 //projection
@@ -181,9 +186,9 @@ namespace _3dGraphics
                 }
 
                 //creating the polygons to display
-                for (int t = 0; t < mesh.TriangleCount; t++)
+                for (int t = 0; t < wObject.Mesh.TriangleCount; t++)
                 {
-                    Triangle tempTri = mesh.GetTriangle(t);
+                    Triangle tempTri = wObject.Mesh.GetTriangle(t);
                     Point p1 = new Point(vertices4D[tempTri.V1Index].X, vertices4D[tempTri.V1Index].Y);
                     Point p2 = new Point(vertices4D[tempTri.V2Index].X, vertices4D[tempTri.V2Index].Y);
                     Point p3 = new Point(vertices4D[tempTri.V3Index].X, vertices4D[tempTri.V3Index].Y);
@@ -225,6 +230,7 @@ namespace _3dGraphics
         {
             Stopwatch globalWatch = Stopwatch.StartNew();
             double lastCycleTimeInSecs = 0.0;
+            long numFrames = 0;
             
 
             while (true)
@@ -240,11 +246,14 @@ namespace _3dGraphics
                 float fovChange = _fovIncrease - _fovDecrease;
 
                 _world.Update(deltaTimeInSecs, cameraMovement, cameraRotation, fovChange);
-                await RenderAsync(); 
+                await RenderAsync();
                 //await Task.Delay(1);        //to keep the FPS at bay
 
-                int fps = (int) (1.0f / deltaTimeInSecs);
-                _mainWindow.Title = "FPS: " + fps;
+                int fps = (int)(1.0f / deltaTimeInSecs);
+                int avgFps = (int)(numFrames / timeInSecs);
+                _mainWindow.Title = String.Format("FPS: {0} | AVG: {1}", fps, avgFps);
+
+                numFrames++;
 
                 lastCycleTimeInSecs = timeInSecs;
             }

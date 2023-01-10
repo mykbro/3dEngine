@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Windows.Controls;
 using _3dGraphics.Graphics;
 
 namespace _3dGraphics.Windows
@@ -105,7 +106,7 @@ namespace _3dGraphics.Windows
         }
 
         public void DrawLine(Point p1, Point p2)
-        {
+        {            
             _canvas.Children.Add(new Line() { X1 = p1.X, Y1 = p1.Y, X2 = p2.X, Y2 = p2.Y, Stroke = Brushes.White });
         }
 
