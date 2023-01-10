@@ -18,6 +18,7 @@ using System.Text;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Reflection;
+using System.IO;
 
 namespace _3dGraphics
 {
@@ -53,8 +54,7 @@ namespace _3dGraphics
 
             _mainWindow.Show();
             _console.Show();
-
-            //CameraTest.Run();
+            
             StartEngineLoopAsync();
         }
 
@@ -85,21 +85,23 @@ namespace _3dGraphics
                 new Triangle(4, 6, 2),
                 new Triangle(2, 0, 4),
             };
-
+            
             //we create Vertex[] from Vector3[]
             var vertices = positions.Select<Vector3, Vertex>((pos) => new Vertex(pos));
-
+            
             Mesh cube = new Mesh(vertices, triangles);
-
+            
             float FOV = 90f;
             float zNear = 0.1f;
-            float zFar = 20f;
+            float zFar = 100f;
             float speedKmh = 5f;
             float rotSpeedDegSec = 60f;
             float fovIncSpeedDegSec = 10f;
 
             //we create the world and populate it with objects
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
+            
+            /*
             for(int i=0; i<8; i++)
             {
                 _world.Objects.Add(new WorldObject(cube, Vector3.Zero, 1f));
@@ -113,12 +115,16 @@ namespace _3dGraphics
             _world.Objects[5].Position = new Vector3(0, 5f, 5f);
             _world.Objects[6].Position = new Vector3(5, 5f, 5f);
             _world.Objects[7].Position = new Vector3(5, 5f, 0f);
-
-            //Render();
+            */
+            
+            Mesh teapot = LoadMeshFromObjFile(@"D:\teapot.obj");
+            _world.Objects.Add(new WorldObject(teapot, Vector3.Zero, 1f));
+            
         }
 
         private void Render()
         {
+            
 
             Matrix4x4 worldToCamera = _world.Camera.WorldToCameraMatrix;
             Matrix4x4 projMatrix = _world.Camera.ProjectionMatrix;
@@ -128,8 +134,9 @@ namespace _3dGraphics
             List<Fragment> fragments = new List<Fragment>();
 
             int debugNumTrianglesFromObjects = 0;
-            int debugNumTrianglesSentToClip = 0;
-            int debugNumTrianglesSentToRender = 0;
+            int debugNumTrianglesSentToClip = 0;         
+            int debugNumTrianglesSentToRender = 0;           
+            
 
             /*
             //prepare the list of ALL vertices
@@ -249,7 +256,7 @@ namespace _3dGraphics
                 debugNumTrianglesFromObjects += wObject.Mesh.TriangleCount;
                 debugNumTrianglesSentToClip += trianglesToClip.Count;
                 debugNumTrianglesSentToRender += trianglesToRender.Count;
-            }
+            }           
 
             //preparing text to display in the console
             StringBuilder consoleSB = new StringBuilder();
@@ -266,7 +273,7 @@ namespace _3dGraphics
             consoleSB.AppendLine(String.Format("Triangles (meshes): {0}", debugNumTrianglesFromObjects));
             consoleSB.AppendLine(String.Format("Triangles (facing): {0}", debugNumTrianglesSentToClip));
             consoleSB.AppendLine(String.Format("Triangles (render): {0}", debugNumTrianglesSentToRender));
-
+                       
             //draw
             Dispatcher.Invoke(() =>
             {
@@ -275,7 +282,7 @@ namespace _3dGraphics
 
                 _console.Clear();
                 _console.WriteLine(consoleSB.ToString());
-            }, DispatcherPriority.Background);
+            }, DispatcherPriority.Background);           
 
         }
 
@@ -322,6 +329,46 @@ namespace _3dGraphics
             return -v.W <= v.X && v.X <= v.W &&
                    -v.W <= v.Y && v.Y <= v.W &&
                     0 <= v.Z && v.Z<= v.W;
+        }
+
+        private static Mesh LoadMeshFromObjFile(string filename)
+        {
+            List<Vertex> vertices = new List<Vertex>();
+            List<Triangle> triangles = new List<Triangle>();
+
+            using (FileStream fs = File.OpenRead(filename))
+            {
+                using (StreamReader objReader = new StreamReader(fs))
+                {
+                    while (!objReader.EndOfStream)
+                    {
+                        string text = objReader.ReadLine();
+                        string[] parts = text.Split();
+                        switch (parts[0])
+                        {
+                            case "v":
+                                float x = float.Parse(parts[1]);
+                                float y = float.Parse(parts[2]);
+                                float z = float.Parse(parts[3]);
+                                vertices.Add(new Vertex(new Vector3(x, y, z)));
+                                break;
+                            case "f":
+                                int v1 = Int32.Parse(parts[1]);
+                                int v2 = Int32.Parse(parts[2]);
+                                int v3 = Int32.Parse(parts[3]);
+                                triangles.Add(new Triangle(v1 - 1, v2 - 1, v3 - 1));
+                                break;
+                            default:
+                                break;
+                        }
+
+                    }
+                }
+
+                return new Mesh(vertices, triangles);
+            }
+
+
         }
 
         #region MOVEMENT
