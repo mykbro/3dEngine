@@ -45,9 +45,9 @@ namespace _3dGraphics.Graphics
         public void Update(float dTimeInSecs, Vector3 cameraVelocityNormalized, Vector3 cameraRotation, float fovIncrease)
         {                        
             Vector3 deltaP = cameraVelocityNormalized * (dTimeInSecs * _cameraSpeedMetersSec);
-            //Matrix4x4 XYRotationMatrix = _camera.RotationXMatrix * _camera.RotationYMatrix * _camera.RotationZMatrix;
-            Matrix4x4 XYRotationMatrix = _camera.RotationYMatrix;   //using only the Y rotation replicates the "normal" leveled movement with freelook
-            deltaP = Vector3.Transform(deltaP, XYRotationMatrix);
+            //Matrix4x4 globalRotationMatrix = _camera.RotationXMatrix * _camera.RotationYMatrix * _camera.RotationZMatrix;
+            Matrix4x4 globalRotationMatrix = _camera.RotationYMatrix;   //using only the Y rotation replicates the "normal" leveled movement with freelook
+            deltaP = Vector3.Transform(deltaP, globalRotationMatrix);
             _camera.MoveBy(deltaP);
 
             Vector3 deltaTheta = cameraRotation * (dTimeInSecs * _cameraRotSpeedRadSec); 

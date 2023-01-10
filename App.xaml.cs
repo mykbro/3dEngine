@@ -17,6 +17,7 @@ using System.Threading;
 using System.Text;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Reflection;
 
 namespace _3dGraphics
 {
@@ -92,7 +93,7 @@ namespace _3dGraphics
 
             float FOV = 90f;
             float zNear = 0.1f;
-            float zFar = 10f;
+            float zFar = 20f;
             float speedKmh = 5f;
             float rotSpeedDegSec = 60f;
             float fovIncSpeedDegSec = 10f;
@@ -117,14 +118,18 @@ namespace _3dGraphics
         }
 
         private void Render()
-        {       
+        {
 
             Matrix4x4 worldToCamera = _world.Camera.WorldToCameraMatrix;
             Matrix4x4 projMatrix = _world.Camera.ProjectionMatrix;
-            Matrix4x4 viewportMatrix = _world.Camera.ViewPortTransformMatrix;
+            Matrix4x4 viewportMatrix = _world.Camera.ViewPortTransformMatrix;            
 
             Matrix4x4 worldToProj = worldToCamera * projMatrix;
             List<Fragment> fragments = new List<Fragment>();
+
+            int debugNumTrianglesFromObjects = 0;
+            int debugNumTrianglesSentToClip = 0;
+            int debugNumTrianglesSentToRender = 0;
 
             /*
             //prepare the list of ALL vertices
@@ -139,62 +144,111 @@ namespace _3dGraphics
             }
             */
 
+            //for each WorldObject
             for (int i = 0; i < _world.Objects.Count; i++)
             {
                 WorldObject wObject = _world.Objects[i];
 
-                //initialize the Vec4
-                Vector4[] vertices4D = new Vector4[wObject.Mesh.VertexCount];
-                for (int v = 0; v < wObject.Mesh.VertexCount; v++)
+                //we create an empty List of Vector4 sized to the total nr of Vertices...
+                //we'll fill it all but we'll avoid relocations and we're going to create new Vertices during the Clipping stage so an Array would not work
+                //we'll also create a companion list of bools that will keep track of the Vertices we need to transform proceeding in the pipeline (initialized to false)
+                List<Vector4> vertices4D = new List<Vector4>(wObject.Mesh.VertexCount);
+                List<bool> processVertex = new List<bool>(wObject.Mesh.VertexCount);
+                //we also create a list for the Triangles that we want to clip sizing it to TriangleCount... we'll probably fill half of it
+                List<Triangle> trianglesToClip = new List<Triangle>(wObject.Mesh.TriangleCount); 
+
+                //we populate the lists
+                for (int vIndex = 0; vIndex < wObject.Mesh.VertexCount; vIndex++)
                 {
-                    vertices4D[v] = wObject.Mesh.GetVertex(v).Position4D;
+                    vertices4D.Add(wObject.Mesh.GetVertex(vIndex).Position4D);
+                    processVertex.Add(false);
                 }
 
-                /*
-                Triangle[] triangles = new Triangle[mesh.TriangleCount];
-                for (int t = 0; t < mesh.TriangleCount; t++)
+                //we transform the camera from World to Object space for backface culling using normals
+                Matrix4x4 worldToLocalMatrix = wObject.WorldToLocalMatrix;
+                Vector3 cameraPosInObjSpace = Vector3.Transform(_world.Camera.Position, worldToLocalMatrix);
+
+                //...and we check each mesh's triangle asserting the vertices' flags and adding the triangle to the processTriangles list
+                for (int tIndex = 0; tIndex < wObject.Mesh.TriangleCount; tIndex++)
                 {
-                    triangles[t] = mesh.GetTriangle(t);
-                }
-                */
+                    Triangle tempTriangle = wObject.Mesh.GetTriangle(tIndex);
+                    Vector3 pointToCameraVec = cameraPosInObjSpace - wObject.Mesh.GetVertex(tempTriangle.V1Index).Position3D;
+                    float scalarProd = Vector3.Dot(pointToCameraVec, wObject.Mesh.GetNormal(tIndex));
+
+                    if(scalarProd > 0)
+                    {
+                        trianglesToClip.Add(tempTriangle);
+                        processVertex[tempTriangle.V1Index] = true;
+                        processVertex[tempTriangle.V2Index] = true;
+                        processVertex[tempTriangle.V3Index] = true;
+                    }                    
+                }              
 
                 //calculate global Matrix
                 Matrix4x4 localToWorld = wObject.LocalToWorldMatrix;
                 Matrix4x4 globalMatrix = localToWorld * worldToProj;
 
                 //projection
-                for (int v = 0; v < vertices4D.Length; v++)
+                for (int vIndex = 0; vIndex < vertices4D.Count; vIndex++)
                 {
-                    vertices4D[v] = Vector4.Transform(vertices4D[v], globalMatrix);
-                    /*
-                    vertices4D[v] = Vector4.Transform(vertices4D[v], localToWorld);
-                    vertices4D[v] = Vector4.Transform(vertices4D[v], worldToCamera);
-                    vertices4D[v] = Vector4.Transform(vertices4D[v], projMatrix);
-                    */
+                    if (processVertex[vIndex])
+                    {
+                        vertices4D[vIndex] = Vector4.Transform(vertices4D[vIndex], globalMatrix);
+                        processVertex[vIndex] = false;  //we reset the status for the clipping stage
+                    }
+                                          
                 }
 
-                //division
-                for (int v = 0; v < vertices4D.Length; v++)
+                //we create a new List<Triangle> for the triangles that passes the clip stage initializing it to trianglesToClip.Count
+                List<Triangle> trianglesToRender = new List<Triangle>(trianglesToClip.Count);
+
+                //triangle clipping (not fully implemented)
+                for (int tIndex = 0; tIndex < trianglesToClip.Count; tIndex++)
                 {
-                    vertices4D[v] = vertices4D[v] / vertices4D[v].W;
+                    Triangle tempTri = trianglesToClip[tIndex];
+
+                    Vector4 p1 = vertices4D[tempTri.V1Index]; 
+                    Vector4 p2 = vertices4D[tempTri.V2Index];
+                    Vector4 p3 = vertices4D[tempTri.V3Index];                    
+
+                    
+                    //for now we reject only triangles completely outside
+                    if (IsVertexInsideNDCSpace(p1) || IsVertexInsideNDCSpace(p2) || IsVertexInsideNDCSpace(p3))
+                    {
+                        trianglesToRender.Add(tempTri);
+                        processVertex[tempTri.V1Index] = true;
+                        processVertex[tempTri.V2Index] = true;
+                        processVertex[tempTri.V3Index] = true;
+                    }
+                    
+                }
+                //here we can free the trianglesToClip list
+                //trianglesToClip = null;
+
+                //division and transformation to viewport
+                for (int vIndex = 0; vIndex < vertices4D.Count; vIndex++)
+                {
+                    if (processVertex[vIndex])
+                    {
+                        vertices4D[vIndex] = vertices4D[vIndex] / vertices4D[vIndex].W;
+                        vertices4D[vIndex] = Vector4.Transform(vertices4D[vIndex], viewportMatrix);
+                    }                        
                 }
 
-                //transformation to viewport                
-                for (int v = 0; v < vertices4D.Length; v++)
+                //creating the fragments to display
+                for (int tIndex = 0; tIndex < trianglesToRender.Count; tIndex++)
                 {
-                    vertices4D[v] = Vector4.Transform(vertices4D[v], viewportMatrix);
-                }
-
-                //creating the polygons to display
-                for (int t = 0; t < wObject.Mesh.TriangleCount; t++)
-                {
-                    Triangle tempTri = wObject.Mesh.GetTriangle(t);
+                    Triangle tempTri = trianglesToRender[tIndex];
                     Point p1 = new Point(vertices4D[tempTri.V1Index].X, vertices4D[tempTri.V1Index].Y);
                     Point p2 = new Point(vertices4D[tempTri.V2Index].X, vertices4D[tempTri.V2Index].Y);
                     Point p3 = new Point(vertices4D[tempTri.V3Index].X, vertices4D[tempTri.V3Index].Y);
-                    
-                    fragments.Add(new Fragment(p1,p2,p3));                    
+
+                    fragments.Add(new Fragment(p1, p2, p3));
                 }
+
+                debugNumTrianglesFromObjects += wObject.Mesh.TriangleCount;
+                debugNumTrianglesSentToClip += trianglesToClip.Count;
+                debugNumTrianglesSentToRender += trianglesToRender.Count;
             }
 
             //preparing text to display in the console
@@ -208,15 +262,19 @@ namespace _3dGraphics
             consoleSB.AppendLine(String.Format("thetaZ: {0:F3}", _world.Camera.Orientation.Z));
             consoleSB.AppendLine();
             consoleSB.AppendLine(String.Format("FOV: {0:F3}", _world.Camera.FOV));
+            consoleSB.AppendLine();
+            consoleSB.AppendLine(String.Format("Triangles (meshes): {0}", debugNumTrianglesFromObjects));
+            consoleSB.AppendLine(String.Format("Triangles (facing): {0}", debugNumTrianglesSentToClip));
+            consoleSB.AppendLine(String.Format("Triangles (render): {0}", debugNumTrianglesSentToRender));
 
             //draw
             Dispatcher.Invoke(() =>
             {
                 _mainWindow.ClearCanvas();
-                _mainWindow.DrawFragments(fragments);    
-                
+                _mainWindow.DrawFragments(fragments);
+
                 _console.Clear();
-                _console.WriteLine(consoleSB.ToString());                
+                _console.WriteLine(consoleSB.ToString());
             }, DispatcherPriority.Background);
 
         }
@@ -257,6 +315,13 @@ namespace _3dGraphics
 
                 lastCycleTimeInSecs = timeInSecs;
             }
+        }
+
+        private static bool IsVertexInsideNDCSpace(Vector4 v)
+        {
+            return -v.W <= v.X && v.X <= v.W &&
+                   -v.W <= v.Y && v.Y <= v.W &&
+                    0 <= v.Z && v.Z<= v.W;
         }
 
         #region MOVEMENT

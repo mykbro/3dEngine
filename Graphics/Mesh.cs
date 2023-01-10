@@ -76,6 +76,6 @@ namespace _3dGraphics.Graphics
             {
                 _triangleNormals[i] = CalculateTriangleNormal(i);
             }
-        }
+        }        
     }
 }
