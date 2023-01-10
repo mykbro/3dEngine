@@ -109,10 +109,16 @@ namespace _3dGraphics.Windows
             _canvas.Children.Add(new Line() { X1 = p1.X, Y1 = p1.Y, X2 = p2.X, Y2 = p2.Y, Stroke = Brushes.White });
         }
 
-        public void DrawTriangle(Point p1, Point p2, Point p3)
+        public void DrawFragment(Fragment f)
+        {   
+            Polygon p = new Polygon() { Points = { f.P1, f.P2, f.P3 }, Stroke = Brushes.White, StrokeThickness = 0.25 };
+            _canvas.Children.Add(p);
+        }
+
+        public void DrawFragments(IEnumerable<Fragment> fragments)
         {
-            Polygon myPolygon = new Polygon() { Points = { p1, p2, p3 }, Stroke = Brushes.White, StrokeThickness = 0.25 };
-            _canvas.Children.Add(myPolygon);
+            foreach(Fragment f in fragments)
+                DrawFragment(f);
         }
 
         public void ClearCanvas() 

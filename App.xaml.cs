@@ -15,6 +15,8 @@ using System.Windows.Threading;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Text;
+using System.Windows.Media;
+using System.Windows.Shapes;
 
 namespace _3dGraphics
 {
@@ -97,14 +99,15 @@ namespace _3dGraphics
 
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
             _world.Meshes.Add(cube);
-            _world.Meshes.Add(cube);
-            _world.Meshes.Add(cube);
-            _world.Meshes.Add(cube);
-            //_world.Camera.VelocityDirection = Vector3.Normalize(new Vector3(0.1f, -0.1f, -1f));
+            _world.Meshes.Add(new Mesh(cube));
+            _world.Meshes.Add(new Mesh(cube));
+            _world.Meshes.Add(new Mesh(cube));
+            //_world.Meshes.Add(cube);
+            //_world.Meshes.Add(cube);            
             _world.Meshes[1].Position = new Vector3(0, 0f, 5f);
             _world.Meshes[2].Position = new Vector3(5, 0f, 5f);
             _world.Meshes[3].Position = new Vector3(5, 0f, 0f);
-            //_world.Camera.MoveBy(new Vector3(0f, 0f, -2f));
+          
             //Render();
         }
 
@@ -116,6 +119,7 @@ namespace _3dGraphics
             Matrix4x4 viewportMatrix = _world.Camera.ViewPortTransformMatrix;
 
             Matrix4x4 worldToProj = worldToCamera * projMatrix;
+            List<Fragment> fragments = new List<Fragment>();
 
             /*
             //prepare the list of ALL vertices
@@ -176,36 +180,39 @@ namespace _3dGraphics
                     vertices4D[v] = Vector4.Transform(vertices4D[v], viewportMatrix);
                 }
 
-                //preparing string to display in console
-                StringBuilder consoleSB = new StringBuilder();
-                consoleSB.AppendLine(String.Format("X: {0:F3}", _world.Camera.Position.X));
-                consoleSB.AppendLine(String.Format("Y: {0:F3}", _world.Camera.Position.Y));
-                consoleSB.AppendLine(String.Format("Z: {0:F3}", _world.Camera.Position.Z));
-                consoleSB.AppendLine();
-                consoleSB.AppendLine(String.Format("thetaX: {0:F3}", _world.Camera.Orientation.X));
-                consoleSB.AppendLine(String.Format("thetaY: {0:F3}", _world.Camera.Orientation.Y));
-                consoleSB.AppendLine(String.Format("thetaZ: {0:F3}", _world.Camera.Orientation.Z));
-                consoleSB.AppendLine();
-                consoleSB.AppendLine(String.Format("FOV: {0:F3}", _world.Camera.FOV));
-
-                //draw
-                Dispatcher.Invoke(() =>
-                    {
-                        _mainWindow.ClearCanvas();
-                        for (int t = 0; t < mesh.TriangleCount; t++)
-                        {
-                            Triangle tempTri = mesh.GetTriangle(t);
-                            Point p1 = new Point(vertices4D[tempTri.V1Index].X, vertices4D[tempTri.V1Index].Y);
-                            Point p2 = new Point(vertices4D[tempTri.V2Index].X, vertices4D[tempTri.V2Index].Y);
-                            Point p3 = new Point(vertices4D[tempTri.V3Index].X, vertices4D[tempTri.V3Index].Y);
-                             
-                            _mainWindow.DrawTriangle(p1, p2, p3);
-                            _console.Clear();
-                            _console.WriteLine(consoleSB.ToString());
-                            
-                        }
-                    }, DispatcherPriority.Background);
+                //creating the polygons to display
+                for (int t = 0; t < mesh.TriangleCount; t++)
+                {
+                    Triangle tempTri = mesh.GetTriangle(t);
+                    Point p1 = new Point(vertices4D[tempTri.V1Index].X, vertices4D[tempTri.V1Index].Y);
+                    Point p2 = new Point(vertices4D[tempTri.V2Index].X, vertices4D[tempTri.V2Index].Y);
+                    Point p3 = new Point(vertices4D[tempTri.V3Index].X, vertices4D[tempTri.V3Index].Y);
+                    
+                    fragments.Add(new Fragment(p1,p2,p3));                    
+                }
             }
+
+            //preparing text to display in the console
+            StringBuilder consoleSB = new StringBuilder();
+            consoleSB.AppendLine(String.Format("X: {0:F3}", _world.Camera.Position.X));
+            consoleSB.AppendLine(String.Format("Y: {0:F3}", _world.Camera.Position.Y));
+            consoleSB.AppendLine(String.Format("Z: {0:F3}", _world.Camera.Position.Z));
+            consoleSB.AppendLine();
+            consoleSB.AppendLine(String.Format("thetaX: {0:F3}", _world.Camera.Orientation.X));
+            consoleSB.AppendLine(String.Format("thetaY: {0:F3}", _world.Camera.Orientation.Y));
+            consoleSB.AppendLine(String.Format("thetaZ: {0:F3}", _world.Camera.Orientation.Z));
+            consoleSB.AppendLine();
+            consoleSB.AppendLine(String.Format("FOV: {0:F3}", _world.Camera.FOV));
+
+            //draw
+            Dispatcher.Invoke(() =>
+            {
+                _mainWindow.ClearCanvas();
+                _mainWindow.DrawFragments(fragments);    
+                
+                _console.Clear();
+                _console.WriteLine(consoleSB.ToString());                
+            }, DispatcherPriority.Background);
 
         }
 
@@ -234,7 +241,7 @@ namespace _3dGraphics
 
                 _world.Update(deltaTimeInSecs, cameraMovement, cameraRotation, fovChange);
                 await RenderAsync(); 
-                await Task.Delay(1);        //to keep the FPS at bay
+                //await Task.Delay(1);        //to keep the FPS at bay
 
                 int fps = (int) (1.0f / deltaTimeInSecs);
                 _mainWindow.Title = "FPS: " + fps;
