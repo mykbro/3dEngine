@@ -29,12 +29,12 @@ namespace _3dGraphics.Windows
             
         }
 
-        private void WriteLine(object o)
+        public void WriteLine(object o)
         {
             _console.Text += o.ToString() + '\n';
         }
 
-        private void Clear()
+        public void Clear()
         {
             _console.Text = string.Empty;
         }

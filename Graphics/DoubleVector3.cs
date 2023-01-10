@@ -20,6 +20,11 @@ namespace _3dGraphics.Graphics
             _v = new Vector<double>(new double[] {x ,y , z, 0});            
         }
 
+        public DoubleVector3(double x, double y, double z)
+        {
+            _v = new Vector<double>(new double[] { x, y, z, 0 });
+        }
+
         public DoubleVector3(Vector<double> v)
         {
             _v = v;

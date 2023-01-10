@@ -35,8 +35,8 @@ namespace _3dGraphics.Windows
         private readonly Action _wReleasedCmd;
         private readonly Action _sPressedCmd;
         private readonly Action _sReleasedCmd;
-        private readonly Action _dPressedCmd;
 
+        private readonly Action _dPressedCmd;
         private readonly Action _dReleasedCmd;
         private readonly Action _aPressedCmd;
         private readonly Action _aReleasedCmd;
@@ -45,6 +45,12 @@ namespace _3dGraphics.Windows
         private readonly Action _qReleasedCmd;
         private readonly Action _ePressedCmd;
         private readonly Action _eReleasedCmd;
+        //FOV
+        private readonly Action _plusPressedCmd;
+        private readonly Action _plusReleasedCmd;
+        private readonly Action _minusPressedCmd;
+        private readonly Action _minusReleasedCmd;
+
 
 
         public MainWindow(Action leftArrowPressedCmd, Action leftArrowReleasedCmd, Action rightArrowPressedCmd, Action rightArrowReleasedCmd,
@@ -52,7 +58,8 @@ namespace _3dGraphics.Windows
                             Action pgUpPressedCmd, Action pgUpReleasedCmd, Action pgDownPressedCmd, Action pgDownReleasedCmd,
                             Action wPressedCmd, Action wReleasedCmd, Action sPressedCmd, Action sReleasedCmd,
                             Action dPressedCmd, Action dReleasedCmd, Action aPressedCmd, Action aReleasedCmd,
-                            Action qPressedCmd, Action qReleasedCmd, Action ePressedCmd, Action eReleasedCmd)
+                            Action qPressedCmd, Action qReleasedCmd, Action ePressedCmd, Action eReleasedCmd,
+                            Action plusPressedCmd, Action plusReleasedCmd, Action minusPressedCmd, Action minusReleasedCmd)
         {
             _leftArrowPressedCmd= leftArrowPressedCmd;
             _leftArrowReleasedCmd= leftArrowReleasedCmd;
@@ -79,6 +86,11 @@ namespace _3dGraphics.Windows
             _eReleasedCmd= eReleasedCmd;
             _qPressedCmd= qPressedCmd;
             _qReleasedCmd= qReleasedCmd;
+
+            _plusPressedCmd= plusPressedCmd;
+            _plusReleasedCmd= plusReleasedCmd;
+            _minusPressedCmd= minusPressedCmd;
+            _minusReleasedCmd = minusReleasedCmd;
             
             InitializeComponent();           
         }
@@ -151,6 +163,12 @@ namespace _3dGraphics.Windows
                 case Key.E:
                     _ePressedCmd.Invoke();
                     break;
+                case Key.Add:
+                    _plusPressedCmd.Invoke();
+                    break;
+                case Key.Subtract:
+                    _minusPressedCmd.Invoke();
+                    break;
                 default:
                     break;
             }
@@ -198,6 +216,12 @@ namespace _3dGraphics.Windows
                     break;
                 case Key.E:
                     _eReleasedCmd.Invoke();
+                    break;
+                case Key.Add:
+                    _plusReleasedCmd.Invoke();
+                    break;
+                case Key.Subtract:
+                    _minusReleasedCmd.Invoke();
                     break;
                 default:
                     break;

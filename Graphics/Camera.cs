@@ -25,7 +25,7 @@ namespace _3dGraphics.Graphics
         public float FOV { get => _fov; set => _fov = value; }
         public float ZNear { get => _zNear; set => _zNear = value; }
         public float ZFar { get => _zFar; set => _zFar = value; }
-        public Vector3 Orientation { get => _orientation.ToVector3(); set => _orientation = new DoubleVector3(value); }
+        public Vector3 Orientation { get => _orientation.ToVector3(); set => _orientation = new DoubleVector3(Utility.NormalizeAngles(value)); }
         public Vector3 Position { get => _position.ToVector3(); set => _position = new DoubleVector3(value); }           
                 
 
@@ -34,18 +34,18 @@ namespace _3dGraphics.Graphics
             get
             {
                 Vector3 pos = Position;
-                Matrix4x4 translMatrix = Matrix4x4.CreateTranslation(-pos.X, -pos.Y, -pos.Z);
-                Matrix4x4 pitchMatrix = Matrix4x4.CreateRotationX(Orientation.X);
-                Matrix4x4 yawMatrix = Matrix4x4.CreateRotationY(Orientation.Y);
-                Matrix4x4 rollMatrix = Matrix4x4.CreateRotationZ(Orientation.Z);
+                Matrix4x4 invTanslMatrix = Matrix4x4.CreateTranslation(-pos.X, -pos.Y, -pos.Z);
+                Matrix4x4 invPitchMatrix = Matrix4x4.CreateRotationX( -Orientation.X);
+                Matrix4x4 invYawMatrix = Matrix4x4.CreateRotationY( -Orientation.Y);
+                Matrix4x4 invRollMatrix = Matrix4x4.CreateRotationZ( -Orientation.Z);
 
-                return translMatrix * rollMatrix * yawMatrix * pitchMatrix;   
+                return invTanslMatrix * invRollMatrix * invYawMatrix * invPitchMatrix;   
             }
         }
 
-        public Matrix4x4 InverseRotationXMatrix => Matrix4x4.CreateRotationX(-Orientation.X);
-        public Matrix4x4 InverseRotationYMatrix => Matrix4x4.CreateRotationY(-Orientation.Y);
-        public Matrix4x4 InverseRotationZMatrix => Matrix4x4.CreateRotationZ(-Orientation.Z);
+        public Matrix4x4 RotationXMatrix => Matrix4x4.CreateRotationX(Orientation.X);
+        public Matrix4x4 RotationYMatrix => Matrix4x4.CreateRotationY(Orientation.Y);
+        public Matrix4x4 RotationZMatrix => Matrix4x4.CreateRotationZ(Orientation.Z);
 
         public Matrix4x4 ProjectionMatrix
         {
@@ -59,7 +59,7 @@ namespace _3dGraphics.Graphics
                 temp.M22 = d;
                 temp.M33 = _zFar / deltaZ;
                 temp.M34 = 1.0f;
-                temp.M43 = - ZFar * ZNear / deltaZ;                              
+                temp.M43 = -_zFar * _zNear / deltaZ;                              
 
                 return temp;                
             }
@@ -114,7 +114,8 @@ namespace _3dGraphics.Graphics
 
         public void RotateBy(Vector3 deltaTheta)
         {
-            _orientation += new DoubleVector3(deltaTheta);
+            _orientation = Utility.NormalizeAngle(_orientation + new DoubleVector3(deltaTheta));
+            
         }
 
     }

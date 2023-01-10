@@ -14,6 +14,7 @@ using System.Windows.Controls;
 using System.Windows.Threading;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Text;
 
 namespace _3dGraphics
 {
@@ -24,10 +25,13 @@ namespace _3dGraphics
     {
         private World _world;
         private MainWindow _mainWindow;
+        private ConsoleWindow _console;
         private Vector3 _cameraForwardMovement;     // 0 or 1
         private Vector3 _cameraBackwardMovement;    // 0 or 1
         private Vector3 _cameraPositiveRotation;
         private Vector3 _cameraNegativeRotation;
+        private float _fovIncrease; //0 or 1
+        private float _fovDecrease;
 
         private void Application_Startup(object sender, StartupEventArgs e)
         {
@@ -37,14 +41,15 @@ namespace _3dGraphics
                                         StartMovingCameraUp, StopMovingCameraUp, StartMovingCameraDown, StopMovingCameraDown,
                                         StartPitchingCameraDown, StopPitchingCameraDown, StartPitchingCameraUp, StopPitchingCameraUp,
                                         StartYawingCameraRight, StopYawingCameraRight, StartYawingCameraLeft, StopYawingCameraLeft,
-                                        StartRollingCameraLeft, StopRollingCameraLeft, StartRollingCameraRight, StopRollingCameraRight);
-            Window consoleWindow = new ConsoleWindow();
+                                        StartRollingCameraLeft, StopRollingCameraLeft, StartRollingCameraRight, StopRollingCameraRight,
+                                        StartIncreasingFov, StopIncreasingFov, StartDecreasingFov, StopDecreasingFov);
+            _console = new ConsoleWindow();
 
             Canvas windowCanvas = _mainWindow.Content as Canvas;
             CreateWorld((int) windowCanvas.Width, (int) windowCanvas.Height);
 
             _mainWindow.Show();
-            //consoleWindow.Show();
+            _console.Show();
 
             //CameraTest.Run();
             StartEngineLoopAsync();
@@ -87,12 +92,18 @@ namespace _3dGraphics
             float zNear = 0.1f;
             float zFar = 10f;
             float speedKmh = 5f;
-            float rotSpeedDegSec = 36f;
+            float rotSpeedDegSec = 60f;
+            float fovIncSpeedDegSec = 10f;
 
-            _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec);
+            _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
+            _world.Meshes.Add(cube);
+            _world.Meshes.Add(cube);
+            _world.Meshes.Add(cube);
             _world.Meshes.Add(cube);
             //_world.Camera.VelocityDirection = Vector3.Normalize(new Vector3(0.1f, -0.1f, -1f));
-            //_world.Meshes[0].MoveBy(new Vector3(-2f,0f,5f));
+            _world.Meshes[1].Position = new Vector3(0, 0f, 5f);
+            _world.Meshes[2].Position = new Vector3(5, 0f, 5f);
+            _world.Meshes[3].Position = new Vector3(5, 0f, 0f);
             //_world.Camera.MoveBy(new Vector3(0f, 0f, -2f));
             //Render();
         }
@@ -105,6 +116,19 @@ namespace _3dGraphics
             Matrix4x4 viewportMatrix = _world.Camera.ViewPortTransformMatrix;
 
             Matrix4x4 worldToProj = worldToCamera * projMatrix;
+
+            /*
+            //prepare the list of ALL vertices
+            List<Vector4> vertices4D = new List<Vector4>(_world.TotalVertexCount);
+            for (int i = 0; i < _world.Meshes.Count; i++)
+            {
+                Mesh m = _world.Meshes[i];
+                for(int j=0; j < m.VertexCount; j++)
+                {
+                    vertices4D.Add(m.GetVertex(j).Position4D);
+                }
+            }
+            */
 
             for (int i = 0; i < _world.Meshes.Count; i++)
             {
@@ -152,6 +176,18 @@ namespace _3dGraphics
                     vertices4D[v] = Vector4.Transform(vertices4D[v], viewportMatrix);
                 }
 
+                //preparing string to display in console
+                StringBuilder consoleSB = new StringBuilder();
+                consoleSB.AppendLine(String.Format("X: {0:F3}", _world.Camera.Position.X));
+                consoleSB.AppendLine(String.Format("Y: {0:F3}", _world.Camera.Position.Y));
+                consoleSB.AppendLine(String.Format("Z: {0:F3}", _world.Camera.Position.Z));
+                consoleSB.AppendLine();
+                consoleSB.AppendLine(String.Format("thetaX: {0:F3}", _world.Camera.Orientation.X));
+                consoleSB.AppendLine(String.Format("thetaY: {0:F3}", _world.Camera.Orientation.Y));
+                consoleSB.AppendLine(String.Format("thetaZ: {0:F3}", _world.Camera.Orientation.Z));
+                consoleSB.AppendLine();
+                consoleSB.AppendLine(String.Format("FOV: {0:F3}", _world.Camera.FOV));
+
                 //draw
                 Dispatcher.Invoke(() =>
                     {
@@ -164,6 +200,9 @@ namespace _3dGraphics
                             Point p3 = new Point(vertices4D[tempTri.V3Index].X, vertices4D[tempTri.V3Index].Y);
                              
                             _mainWindow.DrawTriangle(p1, p2, p3);
+                            _console.Clear();
+                            _console.WriteLine(consoleSB.ToString());
+                            
                         }
                     }, DispatcherPriority.Background);
             }
@@ -191,8 +230,9 @@ namespace _3dGraphics
                     cameraMovement = Vector3.Normalize(cameraMovement);
 
                 Vector3 cameraRotation = _cameraPositiveRotation - _cameraNegativeRotation;
+                float fovChange = _fovIncrease - _fovDecrease;
 
-                _world.Update(deltaTimeInSecs, cameraMovement, cameraRotation);
+                _world.Update(deltaTimeInSecs, cameraMovement, cameraRotation, fovChange);
                 await RenderAsync(); 
                 await Task.Delay(1);        //to keep the FPS at bay
 
@@ -269,71 +309,89 @@ namespace _3dGraphics
         #endregion
 
         #region ROTATION
-        private void StartPitchingCameraUp()
+        private void StartPitchingCameraDown()  //positive rotation is clockwise around the X axis
         {
             _cameraPositiveRotation.X = 1f;
         }
 
-        private void StartPitchingCameraDown()
+        private void StartPitchingCameraUp()
         {
             _cameraNegativeRotation.X = 1f;
         }
 
-        private void StartYawingCameraLeft()
+        private void StartYawingCameraRight()    //positive rotation is clockwise around the Y axis
         {
             _cameraPositiveRotation.Y = 1f;
         }
 
-        private void StartYawingCameraRight()
+        private void StartYawingCameraLeft()
         {
             _cameraNegativeRotation.Y = 1f;
         }
-        
-        private void StopPitchingCameraUp()
-        {
-            _cameraPositiveRotation.X = 0f;
-        }
 
-        private void StopPitchingCameraDown()
-        {
-            _cameraNegativeRotation.X = 0f;
-        }
-
-
-        private void StopYawingCameraLeft()
-        {
-            _cameraPositiveRotation.Y = 0f;
-        }
-
-        private void StopYawingCameraRight()
-        {
-            _cameraNegativeRotation.Y = 0f;
-        }
-
-        
-        private void StartRollingCameraRight()  //we use Z increasing in front of us so rotating clockwise means rotating Right
+        private void StartRollingCameraLeft()  //positive rotation is clockwise around the Z axis but Z axis is reversed
         {
             _cameraPositiveRotation.Z = 1f;
         }
 
-        private void StartRollingCameraLeft()
+        private void StartRollingCameraRight()
         {
             _cameraNegativeRotation.Z = 1f;
         }
 
-        private void StopRollingCameraRight()
+        private void StopPitchingCameraDown()
+        {
+            _cameraPositiveRotation.X = 0f;
+        }
+
+        private void StopPitchingCameraUp()
+        {
+            _cameraNegativeRotation.X = 0f;
+        }
+
+        private void StopYawingCameraRight()
+        {
+            _cameraPositiveRotation.Y = 0f;
+        }
+
+        private void StopYawingCameraLeft()
+        {
+            _cameraNegativeRotation.Y = 0f;
+        }   
+
+        private void StopRollingCameraLeft()
         {
             _cameraPositiveRotation.Z = 0f;
         }
 
-        private void StopRollingCameraLeft()
+        private void StopRollingCameraRight()
         {
             _cameraNegativeRotation.Z = 0f;
         }
 
         #endregion
 
+        #region FOV
+        public void StartIncreasingFov()
+        {
+            _fovIncrease = 1;
+        }
 
+        public void StartDecreasingFov()
+        {
+            _fovDecrease = 1;
+        }
+
+        public void StopIncreasingFov()
+        {
+            _fovIncrease = 0;
+        }
+
+        public void StopDecreasingFov()
+        {
+            _fovDecrease = 0;
+        }
+        #endregion
 
     }
 }
