@@ -50,7 +50,7 @@ namespace _3dGraphics
                                         StartIncreasingFov, StopIncreasingFov, StartDecreasingFov, StopDecreasingFov);
             _console = new ConsoleWindow();
             
-            CreateWorld(_mainWindow.ScreenWidth, _mainWindow.ScreenWidth);
+            CreateWorld(_mainWindow.ScreenWidth, _mainWindow.ScreenHeight);
 
             _mainWindow.Show();
             _console.Show();
@@ -96,7 +96,7 @@ namespace _3dGraphics
             float zFar = 100f;
             float speedKmh = 6f;
             float rotSpeedDegSec = 60f;
-            float fovIncSpeedDegSec = 10f;
+            float fovIncSpeedDegSec = 20f;
 
             //we create the world and populate it with objects
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
@@ -133,10 +133,10 @@ namespace _3dGraphics
 
             //TEAPOT
 
-            //Mesh teapot = LoadMeshFromObjFile(@"D:\teapot.txt");
-            //Mesh suzanne = LoadMeshFromObjFile(@"D:\suzanne.txt");
-            Mesh bunny = LoadMeshFromObjFile(@"D:\bunny.txt");
-            _world.Objects.Add(new WorldObject(bunny, Vector3.Zero, 50f));
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\teapot.txt");
+            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\suzanne.txt");
+            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\bunny.txt");
+            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
             
         }
 
@@ -145,28 +145,15 @@ namespace _3dGraphics
 
             Matrix4x4 worldToCamera = _world.Camera.WorldToCameraMatrix;
             Matrix4x4 projMatrix = _world.Camera.ProjectionMatrix;
-            Matrix4x4 viewportMatrix = _world.Camera.ViewPortTransformMatrix;            
-
+            Matrix4x4 viewportMatrix = _world.Camera.ViewPortTransformMatrix; 
             Matrix4x4 worldToProj = worldToCamera * projMatrix;
+
             List<Fragment> fragments = new List<Fragment>();
 
+            int debugNumVerticesFromObjects = 0;
             int debugNumTrianglesFromObjects = 0;
             int debugNumTrianglesSentToClip = 0;         
-            int debugNumTrianglesSentToRender = 0;           
-            
-
-            /*
-            //prepare the list of ALL vertices
-            List<Vector4> vertices4D = new List<Vector4>(_world.TotalVertexCount);
-            for (int i = 0; i < _world.Meshes.Count; i++)
-            {
-                Mesh m = _world.Meshes[i];
-                for(int j=0; j < m.VertexCount; j++)
-                {
-                    vertices4D.Add(m.GetVertex(j).Position4D);
-                }
-            }
-            */
+            int debugNumTrianglesSentToRender = 0;  
 
             //for each WorldObject
             for (int i = 0; i < _world.Objects.Count; i++)
@@ -222,44 +209,29 @@ namespace _3dGraphics
                     if (verticesMask[vIndex])
                     {
                         vertices4D[vIndex] = Vector4.Transform(vertices4D[vIndex], globalMatrix);
-                        verticesMask[vIndex] = false;  //we reset the status for the clipping stage
-                    }
-                                          
+                        verticesMask[vIndex] = false;  //we reset the mask for the clipping stage
+                    }                                       
                 }
                 
                 //we create a new List<Triangle> for the triangles that passes the clip stage initializing it to trianglesToClip.Count
-                List<Triangle> trianglesToRender = new List<Triangle>(trianglesToClip.Count);                
+                List<Triangle> trianglesToRender = new List<Triangle>(trianglesToClip.Count);
 
-                //triangle clipping (not fully implemented)
+                //triangle clipping
                 for (int tIndex = 0; tIndex < trianglesToClip.Count; tIndex++)
                 {
-                    Triangle tempTri = trianglesToClip[tIndex];
-
-                    Vector4 p1 = vertices4D[tempTri.V1Index]; 
-                    Vector4 p2 = vertices4D[tempTri.V2Index];
-                    Vector4 p3 = vertices4D[tempTri.V3Index];                    
-
-                    
-                    //for now we reject only triangles completely outside
-                    if (IsVertexInsideNDCSpace(p1) || IsVertexInsideNDCSpace(p2) || IsVertexInsideNDCSpace(p3))
-                    {
-                        trianglesToRender.Add(tempTri);
-                        verticesMask[tempTri.V1Index] = true;
-                        verticesMask[tempTri.V2Index] = true;
-                        verticesMask[tempTri.V3Index] = true;
-                    }
-                    
+                    List<Triangle> clipResults = Clipper.ClipTriangleAndAppendNewVerticesAndTriangles(trianglesToClip[tIndex], vertices4D, verticesMask);
+                    trianglesToRender.AddRange(clipResults);
                 }
-                //here we can free the trianglesToClip list
-                //trianglesToClip = null;
 
                 //division and transformation to viewport
                 for (int vIndex = 0; vIndex < vertices4D.Count; vIndex++)
                 {
                     if (verticesMask[vIndex])
                     {
-                        vertices4D[vIndex] = vertices4D[vIndex] / vertices4D[vIndex].W;
-                        vertices4D[vIndex] = Vector4.Transform(vertices4D[vIndex], viewportMatrix);
+                        Vector4 temp = vertices4D[vIndex];
+                        Vector4 dividedVertex = temp / temp.W;                        
+                        
+                        vertices4D[vIndex] = Vector4.Transform(dividedVertex, viewportMatrix);
                     }                        
                 }
 
@@ -274,6 +246,7 @@ namespace _3dGraphics
                     fragments.Add(new Fragment(p1, p2, p3));
                 }
 
+                debugNumVerticesFromObjects += numVertices;
                 debugNumTrianglesFromObjects += numTriangles;
                 debugNumTrianglesSentToClip += trianglesToClip.Count;
                 debugNumTrianglesSentToRender += trianglesToRender.Count;
@@ -291,9 +264,12 @@ namespace _3dGraphics
             consoleSB.AppendLine();
             consoleSB.AppendLine(String.Format("FOV: {0:F3}", _world.Camera.FOV));
             consoleSB.AppendLine();
+            consoleSB.AppendLine(String.Format("Vertices: {0}", debugNumVerticesFromObjects));
             consoleSB.AppendLine(String.Format("Triangles (meshes): {0}", debugNumTrianglesFromObjects));
             consoleSB.AppendLine(String.Format("Triangles (facing): {0}", debugNumTrianglesSentToClip));
             consoleSB.AppendLine(String.Format("Triangles (render): {0}", debugNumTrianglesSentToRender));
+
+            String consoleText = consoleSB.ToString();
                        
             //draw
             Dispatcher.Invoke(() =>
@@ -302,7 +278,7 @@ namespace _3dGraphics
                 _mainWindow.DrawFragments(fragments);
 
                 _console.Clear();
-                _console.WriteLine(consoleSB.ToString());
+                _console.WriteLine(consoleText);
             }, DispatcherPriority.Background);
         }
 
@@ -343,13 +319,7 @@ namespace _3dGraphics
                 lastCycleTimeInSecs = timeInSecs;
             }
         }
-
-        private static bool IsVertexInsideNDCSpace(Vector4 v)
-        {
-            return -v.W <= v.X && v.X <= v.W &&
-                   -v.W <= v.Y && v.Y <= v.W &&
-                    0 <= v.Z && v.Z<= v.W;
-        }
+        
 
         private static Mesh LoadMeshFromObjFile(string filename)
         {

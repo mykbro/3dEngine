@@ -21,7 +21,7 @@ namespace _3dGraphics.Graphics
         //PROPERTIES
         public int ScreenWidth { get => _width; set => _width = value; }
         public int ScreenHeight { get => _height; set => _height = value; }
-        public float AspectRatio => _width * 1f / _height;
+        public float AspectRatio => (_width * 1f) / _height;
         public float FOV { get => _fov; set => _fov = value; }
         public float ZNear { get => _zNear; set => _zNear = value; }
         public float ZFar { get => _zFar; set => _zFar = value; }
