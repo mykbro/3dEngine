@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:_3dGraphics"
         mc:Ignorable="d"
         Title="MainWindow" SizeToContent="WidthAndHeight" Loaded="Window_Loaded" ResizeMode="NoResize" KeyDown="Window_KeyDown" KeyUp="Window_KeyUp">   
-    <Canvas Name="_canvas" Background="Black" Height="1024" Width="1280">        
-    </Canvas>
+    <!--<Canvas Name="_canvas" Background="Black" Height="1024" Width="1280">        
+    </Canvas>-->
+    <Image Name="_canvas" Height="1024" Width="1280"></Image>
 </Window>

@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using System.Windows.Controls;
 using _3dGraphics.Graphics;
+using DrawingGraphics = System.Drawing.Graphics;
+using DrawingPoint = System.Drawing.Point;
+using DrawingBitmap = System.Drawing.Bitmap;
+using DrawingPen = System.Drawing.Pen;
 
 namespace _3dGraphics.Windows
 {
@@ -17,6 +18,10 @@ namespace _3dGraphics.Windows
     /// </summary>
     public partial class MainWindow : Window
     {
+
+        private readonly DrawingPen RenderPen = new DrawingPen(System.Drawing.Brushes.White, 0.25f);        
+
+        //translations
         private readonly Action _leftArrowPressedCmd;
         private readonly Action _leftArrowReleasedCmd;
         private readonly Action _rightArrowPressedCmd;
@@ -50,7 +55,7 @@ namespace _3dGraphics.Windows
         private readonly Action _plusPressedCmd;
         private readonly Action _plusReleasedCmd;
         private readonly Action _minusPressedCmd;
-        private readonly Action _minusReleasedCmd;
+        private readonly Action _minusReleasedCmd;        
 
 
 
@@ -93,38 +98,69 @@ namespace _3dGraphics.Windows
             _minusPressedCmd= minusPressedCmd;
             _minusReleasedCmd = minusReleasedCmd;
             
-            InitializeComponent();           
+            InitializeComponent();            
         }
 
+        public int ScreenWidth => (int) _canvas.Width;
+        public int ScreenHeight => (int)_canvas.Height;        
 
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            ///DrawLine(new Point(5,5), new Point(200, 200));
-            //DrawTriangle(new Triangle( new Vertex(0.1f,0.1f,0,0) , new Vertex(0.5f,0.5f,0,0), new Vertex(0.2f,0.9f,0,0)));
+           
 
         }
 
         public void DrawLine(Point p1, Point p2)
         {            
-            _canvas.Children.Add(new Line() { X1 = p1.X, Y1 = p1.Y, X2 = p2.X, Y2 = p2.Y, Stroke = Brushes.White });
+            //_canvas.Children.Add(new Line() { X1 = p1.X, Y1 = p1.Y, X2 = p2.X, Y2 = p2.Y, Stroke = Brushes.White });
         }
 
         public void DrawFragment(Fragment f)
         {   
             Polygon p = new Polygon() { Points = { f.P1, f.P2, f.P3 }, Stroke = Brushes.White, StrokeThickness = 0.25 };
-            _canvas.Children.Add(p);
+            //_canvas.Children.Add(p);
         }
+        
+
+        private void DrawFragmentOnGraphics(Fragment f, DrawingGraphics g)
+        {          
+            g.DrawLine(RenderPen, (float) f.P1.X, (float) f.P1.Y, (float) f.P2.X, (float) f.P2.Y);
+            g.DrawLine(RenderPen, (float) f.P2.X, (float) f.P2.Y, (float) f.P3.X, (float) f.P3.Y);
+            g.DrawLine(RenderPen, (float) f.P3.X, (float) f.P3.Y, (float) f.P1.X, (float) f.P1.Y);
+        }
+
+
 
         public void DrawFragments(IEnumerable<Fragment> fragments)
         {
+            /*
             foreach(Fragment f in fragments)
                 DrawFragment(f);
+            */            
+            PixelFormat pf = PixelFormats.Bgr24;         
+            WriteableBitmap wBmp = new WriteableBitmap(ScreenWidth, ScreenHeight, 96.0, 96.0, pf, null);            
+
+            wBmp.Lock();    //we need to Lock even in the rendering thread because of the backbuffer usage
+            using(DrawingBitmap bmp = new DrawingBitmap(ScreenWidth, ScreenHeight, wBmp.BackBufferStride, System.Drawing.Imaging.PixelFormat.Format24bppRgb, wBmp.BackBuffer))
+            {
+                using(DrawingGraphics g = DrawingGraphics.FromImage(bmp))
+                {
+                    foreach(Fragment f in fragments) 
+                    {
+                        DrawFragmentOnGraphics(f, g);
+                    }
+                }
+            }
+            wBmp.AddDirtyRect(new Int32Rect(0,0, ScreenWidth, ScreenHeight));
+            wBmp.Unlock();
+            _canvas.Source = wBmp;  
+            
         }
 
         public void ClearCanvas() 
         { 
-            _canvas.Children.Clear(); 
+            //_canvas.Children.Clear(); 
         } 
 
         private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)

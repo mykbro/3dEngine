@@ -20,6 +20,7 @@ using System.Windows.Shapes;
 using System.Reflection;
 using System.IO;
 
+
 namespace _3dGraphics
 {
     /// <summary>
@@ -35,7 +36,7 @@ namespace _3dGraphics
         private Vector3 _cameraPositiveRotation;
         private Vector3 _cameraNegativeRotation;
         private float _fovIncrease; //0 or 1
-        private float _fovDecrease;
+        private float _fovDecrease; //0 or 1
 
         private void Application_Startup(object sender, StartupEventArgs e)
         {
@@ -43,14 +44,13 @@ namespace _3dGraphics
             _mainWindow = new MainWindow(StartMovingCameraLeft, StopMovingCameraLeft, StartMovingCameraRight, StopMovingCameraRight,
                                         StartMovingCameraForward, StopMovingCameraForward, StartMovingCameraBackward, StopMovingCameraBackward,
                                         StartMovingCameraUp, StopMovingCameraUp, StartMovingCameraDown, StopMovingCameraDown,
-                                        StartPitchingCameraDown, StopPitchingCameraDown, StartPitchingCameraUp, StopPitchingCameraUp,
+                                        StartPitchingCameraUp, StopPitchingCameraUp, StartPitchingCameraDown, StopPitchingCameraDown,
                                         StartYawingCameraRight, StopYawingCameraRight, StartYawingCameraLeft, StopYawingCameraLeft,
                                         StartRollingCameraLeft, StopRollingCameraLeft, StartRollingCameraRight, StopRollingCameraRight,
                                         StartIncreasingFov, StopIncreasingFov, StartDecreasingFov, StopDecreasingFov);
             _console = new ConsoleWindow();
-
-            Canvas windowCanvas = _mainWindow.Content as Canvas;
-            CreateWorld((int) windowCanvas.Width, (int) windowCanvas.Height);
+            
+            CreateWorld(_mainWindow.ScreenWidth, _mainWindow.ScreenWidth);
 
             _mainWindow.Show();
             _console.Show();
@@ -94,13 +94,13 @@ namespace _3dGraphics
             float FOV = 90f;
             float zNear = 0.1f;
             float zFar = 100f;
-            float speedKmh = 5f;
+            float speedKmh = 6f;
             float rotSpeedDegSec = 60f;
             float fovIncSpeedDegSec = 10f;
 
             //we create the world and populate it with objects
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
-            
+
             /*
             for(int i=0; i<8; i++)
             {
@@ -108,23 +108,40 @@ namespace _3dGraphics
             }
                
             //we move the objects  
-            _world.Objects[1].Position = new Vector3(0, 0f, 5f);
-            _world.Objects[2].Position = new Vector3(5, 0f, 5f);
-            _world.Objects[3].Position = new Vector3(5, 0f, 0f);
-            _world.Objects[4].Position = new Vector3(0, 5f, 0f);
-            _world.Objects[5].Position = new Vector3(0, 5f, 5f);
-            _world.Objects[6].Position = new Vector3(5, 5f, 5f);
-            _world.Objects[7].Position = new Vector3(5, 5f, 0f);
+            _world.Objects[1].Position = new Vector3(0f, 0f, 5f);
+            _world.Objects[2].Position = new Vector3(5f, 0f, 5f);
+            _world.Objects[3].Position = new Vector3(5f, 0f, 0f);
+            _world.Objects[4].Position = new Vector3(0f, 5f, 0f);
+            _world.Objects[5].Position = new Vector3(0f, 5f, 5f);
+            _world.Objects[6].Position = new Vector3(5f, 5f, 5f);
+            _world.Objects[7].Position = new Vector3(5f, 5f, 0f);
             */
+
+            /*
+            //big distances test
             
-            Mesh teapot = LoadMeshFromObjFile(@"D:\teapot.obj");
-            _world.Objects.Add(new WorldObject(teapot, Vector3.Zero, 1f));
+            float d = 10e6f;
+            Vector3 movement = Vector3.One * d;
+            _world.Camera.MoveBy(movement);
+            for (int i = 0; i < 8; i++)
+            {
+                _world.Objects[i].MoveBy(movement);
+            }
+            */
+
+
+
+            //TEAPOT
+
+            //Mesh teapot = LoadMeshFromObjFile(@"D:\teapot.txt");
+            //Mesh suzanne = LoadMeshFromObjFile(@"D:\suzanne.txt");
+            Mesh bunny = LoadMeshFromObjFile(@"D:\bunny.txt");
+            _world.Objects.Add(new WorldObject(bunny, Vector3.Zero, 50f));
             
         }
 
         private void Render()
-        {
-            
+        {           
 
             Matrix4x4 worldToCamera = _world.Camera.WorldToCameraMatrix;
             Matrix4x4 projMatrix = _world.Camera.ProjectionMatrix;
@@ -154,21 +171,25 @@ namespace _3dGraphics
             //for each WorldObject
             for (int i = 0; i < _world.Objects.Count; i++)
             {
-                WorldObject wObject = _world.Objects[i];
+                WorldObject wObject = _world.Objects[i];        //store to avoid repetitive calls
+                Mesh mesh= wObject.Mesh;                        //store to avoid repetitive calls
+                int numVertices = mesh.VertexCount;             //store to avoid repetitive calls
+                int numTriangles = mesh.TriangleCount;          //store to avoid repetitive calls
 
                 //we create an empty List of Vector4 sized to the total nr of Vertices...
                 //we'll fill it all but we'll avoid relocations and we're going to create new Vertices during the Clipping stage so an Array would not work
                 //we'll also create a companion list of bools that will keep track of the Vertices we need to transform proceeding in the pipeline (initialized to false)
-                List<Vector4> vertices4D = new List<Vector4>(wObject.Mesh.VertexCount);
-                List<bool> processVertex = new List<bool>(wObject.Mesh.VertexCount);
+                List<Vector4> vertices4D = new List<Vector4>(numVertices);
+                List<bool> verticesMask = new List<bool>(numVertices);
                 //we also create a list for the Triangles that we want to clip sizing it to TriangleCount... we'll probably fill half of it
-                List<Triangle> trianglesToClip = new List<Triangle>(wObject.Mesh.TriangleCount); 
+                List<Triangle> trianglesToClip = new List<Triangle>(numTriangles);
+               
 
                 //we populate the lists
-                for (int vIndex = 0; vIndex < wObject.Mesh.VertexCount; vIndex++)
+                for (int vIndex = 0; vIndex < numVertices; vIndex++)
                 {
-                    vertices4D.Add(wObject.Mesh.GetVertex(vIndex).Position4D);
-                    processVertex.Add(false);
+                    vertices4D.Add(mesh.GetVertex(vIndex).Position4D);
+                    verticesMask.Add(false);
                 }
 
                 //we transform the camera from World to Object space for backface culling using normals
@@ -176,18 +197,18 @@ namespace _3dGraphics
                 Vector3 cameraPosInObjSpace = Vector3.Transform(_world.Camera.Position, worldToLocalMatrix);
 
                 //...and we check each mesh's triangle asserting the vertices' flags and adding the triangle to the processTriangles list
-                for (int tIndex = 0; tIndex < wObject.Mesh.TriangleCount; tIndex++)
+                for (int tIndex = 0; tIndex < numTriangles; tIndex++)
                 {
-                    Triangle tempTriangle = wObject.Mesh.GetTriangle(tIndex);
-                    Vector3 pointToCameraVec = cameraPosInObjSpace - wObject.Mesh.GetVertex(tempTriangle.V1Index).Position3D;
-                    float scalarProd = Vector3.Dot(pointToCameraVec, wObject.Mesh.GetNormal(tIndex));
+                    Triangle tempTriangle = mesh.GetTriangle(tIndex);
+                    Vector3 pointToCameraVec = cameraPosInObjSpace - mesh.GetVertex(tempTriangle.V1Index).Position3D;
+                    float scalarProd = Vector3.Dot(pointToCameraVec, mesh.GetNormal(tIndex));
 
                     if(scalarProd > 0)
                     {
-                        trianglesToClip.Add(tempTriangle);
-                        processVertex[tempTriangle.V1Index] = true;
-                        processVertex[tempTriangle.V2Index] = true;
-                        processVertex[tempTriangle.V3Index] = true;
+                        trianglesToClip.Add(tempTriangle);                        
+                        verticesMask[tempTriangle.V1Index] = true;
+                        verticesMask[tempTriangle.V2Index] = true;
+                        verticesMask[tempTriangle.V3Index] = true;
                     }                    
                 }              
 
@@ -198,16 +219,16 @@ namespace _3dGraphics
                 //projection
                 for (int vIndex = 0; vIndex < vertices4D.Count; vIndex++)
                 {
-                    if (processVertex[vIndex])
+                    if (verticesMask[vIndex])
                     {
                         vertices4D[vIndex] = Vector4.Transform(vertices4D[vIndex], globalMatrix);
-                        processVertex[vIndex] = false;  //we reset the status for the clipping stage
+                        verticesMask[vIndex] = false;  //we reset the status for the clipping stage
                     }
                                           
                 }
-
+                
                 //we create a new List<Triangle> for the triangles that passes the clip stage initializing it to trianglesToClip.Count
-                List<Triangle> trianglesToRender = new List<Triangle>(trianglesToClip.Count);
+                List<Triangle> trianglesToRender = new List<Triangle>(trianglesToClip.Count);                
 
                 //triangle clipping (not fully implemented)
                 for (int tIndex = 0; tIndex < trianglesToClip.Count; tIndex++)
@@ -223,9 +244,9 @@ namespace _3dGraphics
                     if (IsVertexInsideNDCSpace(p1) || IsVertexInsideNDCSpace(p2) || IsVertexInsideNDCSpace(p3))
                     {
                         trianglesToRender.Add(tempTri);
-                        processVertex[tempTri.V1Index] = true;
-                        processVertex[tempTri.V2Index] = true;
-                        processVertex[tempTri.V3Index] = true;
+                        verticesMask[tempTri.V1Index] = true;
+                        verticesMask[tempTri.V2Index] = true;
+                        verticesMask[tempTri.V3Index] = true;
                     }
                     
                 }
@@ -235,7 +256,7 @@ namespace _3dGraphics
                 //division and transformation to viewport
                 for (int vIndex = 0; vIndex < vertices4D.Count; vIndex++)
                 {
-                    if (processVertex[vIndex])
+                    if (verticesMask[vIndex])
                     {
                         vertices4D[vIndex] = vertices4D[vIndex] / vertices4D[vIndex].W;
                         vertices4D[vIndex] = Vector4.Transform(vertices4D[vIndex], viewportMatrix);
@@ -253,7 +274,7 @@ namespace _3dGraphics
                     fragments.Add(new Fragment(p1, p2, p3));
                 }
 
-                debugNumTrianglesFromObjects += wObject.Mesh.TriangleCount;
+                debugNumTrianglesFromObjects += numTriangles;
                 debugNumTrianglesSentToClip += trianglesToClip.Count;
                 debugNumTrianglesSentToRender += trianglesToRender.Count;
             }           
@@ -277,13 +298,12 @@ namespace _3dGraphics
             //draw
             Dispatcher.Invoke(() =>
             {
-                _mainWindow.ClearCanvas();
+                //_mainWindow.ClearCanvas();
                 _mainWindow.DrawFragments(fragments);
 
                 _console.Clear();
                 _console.WriteLine(consoleSB.ToString());
-            }, DispatcherPriority.Background);           
-
+            }, DispatcherPriority.Background);
         }
 
         public Task RenderAsync()
