@@ -20,6 +20,7 @@ namespace _3dGraphics.Windows
     public partial class MainWindow : Window
     {
         private readonly DrawingPen[] _pens;
+        private readonly WriteableBitmap _wBmp; 
 
         //translations
         private readonly Action _leftArrowPressedCmd;
@@ -104,10 +105,13 @@ namespace _3dGraphics.Windows
             {
                 System.Drawing.Color temp = System.Drawing.Color.FromArgb(i, i, i);
                 _pens[i] = new DrawingPen(temp);
-            }
+            }           
 
             //
             InitializeComponent();
+
+            //create the WritableBitmap
+            _wBmp = new WriteableBitmap(ScreenWidth, ScreenHeight, 96.0, 96.0, PixelFormats.Bgr24, null);
         }
 
         public int ScreenWidth => (int) _canvas.Width;
@@ -136,29 +140,22 @@ namespace _3dGraphics.Windows
 
 
         public void DrawFragments(IEnumerable<Fragment> fragments)
-        {
-            /*
-            foreach(Fragment f in fragments)
-                DrawFragment(f);
-            */            
-            PixelFormat pf = PixelFormats.Bgr24;         
-            WriteableBitmap wBmp = new WriteableBitmap(ScreenWidth, ScreenHeight, 96.0, 96.0, pf, null);            
-
-            wBmp.Lock();    //we need to Lock even in the rendering thread because of the backbuffer usage
-            using(DrawingBitmap bmp = new DrawingBitmap(ScreenWidth, ScreenHeight, wBmp.BackBufferStride, System.Drawing.Imaging.PixelFormat.Format24bppRgb, wBmp.BackBuffer))
+        {  
+            _wBmp.Lock();    //we need to Lock even in the rendering thread because of the backbuffer usage
+            using(DrawingBitmap bmp = new DrawingBitmap(ScreenWidth, ScreenHeight, _wBmp.BackBufferStride, System.Drawing.Imaging.PixelFormat.Format24bppRgb, _wBmp.BackBuffer))
             {
                 using(DrawingGraphics g = DrawingGraphics.FromImage(bmp))
                 {                  
+                    g.FillRectangle(System.Drawing.Brushes.Black, new System.Drawing.Rectangle(0,0, ScreenWidth, ScreenHeight));
                     foreach(Fragment f in fragments) 
                     {
                         DrawFragmentOnGraphics(f, g);
                     } 
                 }
             }
-            wBmp.AddDirtyRect(new Int32Rect(0,0, ScreenWidth, ScreenHeight));
-            wBmp.Unlock();
-            _canvas.Source = wBmp;  
-            
+            _wBmp.AddDirtyRect(new Int32Rect(0,0, ScreenWidth, ScreenHeight));
+            _wBmp.Unlock();
+            _canvas.Source = _wBmp;  
         }
 
         public void ClearCanvas() 

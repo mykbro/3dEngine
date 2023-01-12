@@ -29,13 +29,6 @@ namespace _3dGraphics.Graphics
             _v3Index = v3Index;           
             _lightIntensity = lightInt;
         }
-
-        public Triangle(int v1Index, int v2Index, int v3Index)
-        {
-            _v1Index = v1Index;
-            _v2Index = v2Index;
-            _v3Index = v3Index;
-            _lightIntensity = 1.0f;
-        }
+        
     }
 }

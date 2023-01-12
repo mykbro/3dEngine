@@ -60,38 +60,7 @@ namespace _3dGraphics
         }
 
         private void CreateWorld(int screenWidth, int screenHeight)
-        {
-            Vector3[] positions = {
-                new Vector3(0f, 0f, 0f),
-                new Vector3(1f, 0f, 0f),
-                new Vector3(0f, 1f, 0f),
-                new Vector3(1f, 1f, 0f),
-                new Vector3(0f, 0f, 1f),
-                new Vector3(1f, 0f, 1f),
-                new Vector3(0f, 1f, 1f),
-                new Vector3(1f, 1f, 1f),
-            };
-
-            Triangle[] triangles = {
-                new Triangle(0, 2 ,3),
-                new Triangle(3, 1, 0),
-                new Triangle(2, 6, 7),
-                new Triangle(7, 3, 2),
-                new Triangle(1, 3, 7),
-                new Triangle(7, 5, 1),
-                new Triangle(4, 0, 1),
-                new Triangle(1, 5, 4),
-                new Triangle(5, 7, 6),
-                new Triangle(6, 4, 5),
-                new Triangle(4, 6, 2),
-                new Triangle(2, 0, 4),
-            };
-            
-            //we create Vertex[] from Vector3[]
-            var vertices = positions.Select<Vector3, Vertex>((pos) => new Vertex(pos));
-            
-            Mesh cube = new Mesh(vertices, triangles);
-            
+        {  
             
             float FOV = 90f;
             float zNear = 0.05f;
@@ -101,23 +70,7 @@ namespace _3dGraphics
             float fovIncSpeedDegSec = 20f;
 
             //we create the world and populate it with objects
-            _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
-
-            /*
-            for(int i=0; i<8; i++)
-            {
-                _world.Objects.Add(new WorldObject(cube, Vector3.Zero, 1f));
-            }
-               
-            //we move the objects  
-            _world.Objects[1].Position = new Vector3(0f, 0f, 5f);
-            _world.Objects[2].Position = new Vector3(5f, 0f, 5f);
-            _world.Objects[3].Position = new Vector3(5f, 0f, 0f);
-            _world.Objects[4].Position = new Vector3(0f, 5f, 0f);
-            _world.Objects[5].Position = new Vector3(0f, 5f, 5f);
-            _world.Objects[6].Position = new Vector3(5f, 5f, 5f);
-            _world.Objects[7].Position = new Vector3(5f, 5f, 0f);
-            */
+            _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);             
 
             /*
             //big distances test
@@ -131,15 +84,15 @@ namespace _3dGraphics
             }
             */
 
-
-
-            //TEAPOT
-
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\teapot.txt");
-            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\suzanne.txt");
-            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\bunny.txt");
-            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
+            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt");
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");
+            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\suzanne.txt");
+            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\bunny.txt");
             
+            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
+            //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
+            //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
+            //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(0f, 0f, 10f), 1f));
         }
 
         private void Render()
@@ -294,12 +247,12 @@ namespace _3dGraphics
             }, DispatcherPriority.Background);
         }
 
-        public Task RenderAsync()
+        private Task RenderAsync()
         {
             return Task.Run(() => Render());
         }
 
-        public async void StartEngineLoopAsync()
+        private async void StartEngineLoopAsync()
         {
             Stopwatch globalWatch = Stopwatch.StartNew();
             double lastCycleTimeInSecs = 0.0;
@@ -358,7 +311,7 @@ namespace _3dGraphics
                                 int v1 = Int32.Parse(parts[1]);
                                 int v2 = Int32.Parse(parts[2]);
                                 int v3 = Int32.Parse(parts[3]);
-                                triangles.Add(new Triangle(v1 - 1, v2 - 1, v3 - 1));
+                                triangles.Add(new Triangle(v1 - 1, v2 - 1, v3 - 1, 1f));    //obj file indexes count from 1; we also initialize to MAX luminosity
                                 break;
                             default:
                                 break;
@@ -369,11 +322,11 @@ namespace _3dGraphics
 
                 return new Mesh(vertices, triangles);
             }
-
-
         }
 
-        #region MOVEMENT
+
+
+        #region MOVEMENT CMDs
         /// START MOVING
         private void StartMovingCameraRight() 
         {
@@ -438,7 +391,7 @@ namespace _3dGraphics
         }
         #endregion
 
-        #region ROTATION
+        #region ROTATION CMDs
         private void StartPitchingCameraDown()  //positive rotation is clockwise around the X axis
         {
             _cameraPositiveRotation.X = 1f;
@@ -499,9 +452,9 @@ namespace _3dGraphics
             _cameraNegativeRotation.Z = 0f;
         }
 
-        #endregion
+        #endregion 
 
-        #region FOV
+        #region FOV CMDs
         public void StartIncreasingFov()
         {
             _fovIncrease = 1;
