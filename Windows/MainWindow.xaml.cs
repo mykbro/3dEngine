@@ -18,7 +18,8 @@ namespace _3dGraphics.Windows
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
-    {             
+    {
+        private readonly DrawingPen[] _pens;
 
         //translations
         private readonly Action _leftArrowPressedCmd;
@@ -97,7 +98,16 @@ namespace _3dGraphics.Windows
             _minusPressedCmd= minusPressedCmd;
             _minusReleasedCmd = minusReleasedCmd;
             
-            InitializeComponent();            
+            // populating pen cache
+            _pens = new DrawingPen[256];
+            for(int i=0; i<256; i++)
+            {
+                System.Drawing.Color temp = System.Drawing.Color.FromArgb(i, i, i);
+                _pens[i] = new DrawingPen(temp);
+            }
+
+            //
+            InitializeComponent();
         }
 
         public int ScreenWidth => (int) _canvas.Width;
@@ -114,12 +124,14 @@ namespace _3dGraphics.Windows
         private void DrawFragmentOnGraphics(Fragment f, DrawingGraphics g)
         {
             int grayLevel = (int) (f.LightIntensity * 255);
-            System.Drawing.Color penColor = System.Drawing.Color.FromArgb(grayLevel, grayLevel, grayLevel);
-            DrawingPen renderPen = new DrawingPen(penColor);
-            
+
+            //System.Drawing.Color penColor = System.Drawing.Color.FromArgb(grayLevel, grayLevel, grayLevel);
+            //DrawingPen renderPen = new DrawingPen(penColor);
+            DrawingPen renderPen = _pens[grayLevel];
+
             g.DrawLine(renderPen, f.P1, f.P2);          
             g.DrawLine(renderPen, f.P2, f.P3);           
-            g.DrawLine(renderPen, f.P3, f.P1);                        
+            g.DrawLine(renderPen, f.P3, f.P1);  
         }
 
 

@@ -135,10 +135,10 @@ namespace _3dGraphics
 
             //TEAPOT
 
-            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\teapot.txt");
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\teapot.txt");
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\suzanne.txt");
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\bunny.txt");
-            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 5f));
+            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\bunny.txt");
+            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
             
         }
 
