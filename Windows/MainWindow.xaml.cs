@@ -11,6 +11,7 @@ using DrawingPoint = System.Drawing.Point;
 using DrawingBitmap = System.Drawing.Bitmap;
 using DrawingPen = System.Drawing.Pen;
 using System.Threading.Tasks;
+using System.Security.Cryptography.Pkcs;
 
 namespace _3dGraphics.Windows
 {
@@ -111,7 +112,7 @@ namespace _3dGraphics.Windows
             InitializeComponent();
 
             //create the WritableBitmap
-            _wBmp = new WriteableBitmap(ScreenWidth, ScreenHeight, 96.0, 96.0, PixelFormats.Bgr24, null);
+            _wBmp = new WriteableBitmap(ScreenWidth, ScreenHeight, 96.0, 96.0, PixelFormats.Bgr32, null);
         }
 
         public int ScreenWidth => (int) _canvas.Width;
@@ -119,11 +120,16 @@ namespace _3dGraphics.Windows
 
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
-        {
-           
+        {           
 
-        }       
+        }     
         
+        public void Draw(byte[] data, int stride)
+        {
+            int rowStride = stride * ScreenWidth;
+            _wBmp.WritePixels(new Int32Rect(0, 0, ScreenWidth, ScreenHeight), data, rowStride, 0);
+            _canvas.Source = _wBmp;
+        }
 
         private void DrawFragmentOnGraphics(Fragment f, DrawingGraphics g)
         {
@@ -132,7 +138,7 @@ namespace _3dGraphics.Windows
             //System.Drawing.Color penColor = System.Drawing.Color.FromArgb(grayLevel, grayLevel, grayLevel);
             //DrawingPen renderPen = new DrawingPen(penColor);
             DrawingPen renderPen = _pens[grayLevel];
-
+           
             g.DrawLine(renderPen, f.P1, f.P2);          
             g.DrawLine(renderPen, f.P2, f.P3);           
             g.DrawLine(renderPen, f.P3, f.P1);  
@@ -143,10 +149,12 @@ namespace _3dGraphics.Windows
         {  
             _wBmp.Lock();    //we need to Lock even in the rendering thread because of the backbuffer usage
             using(DrawingBitmap bmp = new DrawingBitmap(ScreenWidth, ScreenHeight, _wBmp.BackBufferStride, System.Drawing.Imaging.PixelFormat.Format24bppRgb, _wBmp.BackBuffer))
-            {
+            {                
                 using(DrawingGraphics g = DrawingGraphics.FromImage(bmp))
                 {                  
+                    //we reset the writableBitmap
                     g.FillRectangle(System.Drawing.Brushes.Black, new System.Drawing.Rectangle(0,0, ScreenWidth, ScreenHeight));
+                    //we draw each fragment
                     foreach(Fragment f in fragments) 
                     {
                         DrawFragmentOnGraphics(f, g);
@@ -156,12 +164,7 @@ namespace _3dGraphics.Windows
             _wBmp.AddDirtyRect(new Int32Rect(0,0, ScreenWidth, ScreenHeight));
             _wBmp.Unlock();
             _canvas.Source = _wBmp;  
-        }
-
-        public void ClearCanvas() 
-        { 
-            //_canvas.Children.Clear(); 
-        } 
+        }       
 
         private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {

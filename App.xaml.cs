@@ -20,6 +20,7 @@ using System.Windows.Shapes;
 using System.Reflection;
 using System.IO;
 using PointF = System.Drawing.PointF;
+using DrawingColor = System.Drawing.Color;
 
 
 namespace _3dGraphics
@@ -38,6 +39,7 @@ namespace _3dGraphics
         private Vector3 _cameraNegativeRotation;
         private float _fovIncrease; //0 or 1
         private float _fovDecrease; //0 or 1
+        private RenderTarget _renderTarget;
 
         private void Application_Startup(object sender, StartupEventArgs e)
         {
@@ -52,6 +54,7 @@ namespace _3dGraphics
             _console = new ConsoleWindow();
             
             CreateWorld(_mainWindow.ScreenWidth, _mainWindow.ScreenHeight);
+            _renderTarget = new RenderTarget(_mainWindow.ScreenWidth, _mainWindow.ScreenHeight);
 
             _mainWindow.Show();
             _console.Show();
@@ -90,9 +93,9 @@ namespace _3dGraphics
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\bunny.txt");
             
             _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
-            //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
-            //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
-            //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(0f, 0f, 10f), 1f));
+            _world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
+            _world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
+            _world.Objects.Add(new WorldObject(objToLoad, new Vector3(0f, 0f, 10f), 1f));
         }
 
         private void Render()
@@ -108,7 +111,10 @@ namespace _3dGraphics
             int debugNumVerticesFromObjects = 0;
             int debugNumTrianglesFromObjects = 0;
             int debugNumTrianglesSentToClip = 0;         
-            int debugNumTrianglesSentToRender = 0;  
+            int debugNumTrianglesSentToRender = 0;
+
+            //we clear our RenderTarget for the new pass
+            _renderTarget.Clear();
 
             //for each WorldObject
             for (int i = 0; i < _world.Objects.Count; i++)
@@ -204,11 +210,23 @@ namespace _3dGraphics
                 for (int tIndex = 0; tIndex < trianglesToRender.Count; tIndex++)
                 {
                     Triangle tempTri = trianglesToRender[tIndex];
+                    /*
                     PointF p1 = new PointF(vertices4D[tempTri.V1Index].X, vertices4D[tempTri.V1Index].Y);
                     PointF p2 = new PointF(vertices4D[tempTri.V2Index].X, vertices4D[tempTri.V2Index].Y);
                     PointF p3 = new PointF(vertices4D[tempTri.V3Index].X, vertices4D[tempTri.V3Index].Y);
 
                     fragments.Add(new Fragment(p1, p2, p3, tempTri.LightIntensity));
+                    */
+                    Vector4 v1 = vertices4D[tempTri.V1Index];
+                    Vector4 v2 = vertices4D[tempTri.V2Index];
+                    Vector4 v3 = vertices4D[tempTri.V3Index];
+
+                    int colorLevel = (int)(tempTri.LightIntensity * 255);
+                    DrawingColor col = DrawingColor.FromArgb(colorLevel, colorLevel, colorLevel);
+
+                    Fragment3D frag = new Fragment3D(new Vector3(v1.X, v1.Y, v1.Z), new Vector3(v2.X, v2.Y, v2.Z), new Vector3(v3.X, v3.Y, v3.Z), col);
+
+                    _renderTarget.RenderFragment(frag);
                 }
 
                 debugNumVerticesFromObjects += numVertices;
@@ -239,9 +257,8 @@ namespace _3dGraphics
             //draw
             Dispatcher.Invoke(() =>
             {
-                //_mainWindow.ClearCanvas();
-                _mainWindow.DrawFragments(fragments);
-
+                //_mainWindow.DrawFragments(fragments);
+                _mainWindow.Draw(_renderTarget.Data, _renderTarget.Stride);
                 _console.Clear();
                 _console.WriteLine(consoleText);
             }, DispatcherPriority.Background);
