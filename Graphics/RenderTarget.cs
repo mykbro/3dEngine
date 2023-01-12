@@ -66,12 +66,19 @@ namespace _3dGraphics.Graphics
 
                         if (insideTriangle)
                         {
-                            int pixelNr = (y * Width + x) * Stride;
+                            int pixelNr = y * Width + x;
                             
-                            _data[pixelNr] = fragment.Color.B;
-                            _data[pixelNr+1] = fragment.Color.G;
-                            _data[pixelNr+2] = fragment.Color.R;
-                            _data[pixelNr + 3] = 0;   //alpha
+                            if(fragment.P1.Z < _zBuffer[pixelNr])
+                            {
+                                _zBuffer[pixelNr] = fragment.P1.Z;
+
+                                int pixelStartingByte = pixelNr * Stride;
+
+                                _data[pixelStartingByte] = fragment.Color.B;
+                                _data[pixelStartingByte + 1] = fragment.Color.G;
+                                _data[pixelStartingByte + 2] = fragment.Color.R;
+                                //_data[pixelStartingByte + 3] = 0;   //alpha
+                            }
                         }
                     }                   
                 }
@@ -89,7 +96,9 @@ namespace _3dGraphics.Graphics
             for(int i=0; i<_data.Length; i++)
             {
                 _data[i] = 0;                
-            }            
+            }
+
+            ClearZBuffer();
         }
 
         public void ClearZBuffer()
