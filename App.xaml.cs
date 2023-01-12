@@ -210,8 +210,17 @@ namespace _3dGraphics
                 {
                     if (verticesMask[vIndex])
                     {
-                        vertices4D[vIndex] = Vector4.Transform(vertices4D[vIndex], globalMatrix);
-                        verticesMask[vIndex] = false;  //we reset the mask for the clipping stage
+                        Vector4 temp = Vector4.Transform(vertices4D[vIndex], globalMatrix);
+                        vertices4D[vIndex] = temp;
+                        if (Clipper.IsPointInsideViewVolume(temp))
+                        {
+                            //we leave the vertexMash to true to signal that the vertex is totally inside (for the next clip stage)
+                        }
+                        else
+                        {
+                            verticesMask[vIndex] = false;  //we reset the mask for the clipping stage
+                        }
+                        
                     }                                       
                 }
                 

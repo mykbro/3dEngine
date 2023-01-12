@@ -16,18 +16,21 @@ namespace _3dGraphics.Graphics
         public static List<Triangle> ClipTriangleAndAppendNewVerticesAndTriangles(Triangle triangle, List<Vector4> vertices, List<bool> verticesMask)
         {
             
+            
             List<Triangle> inputList = new List<Triangle>();
             inputList.Add(triangle);
 
-            bool quickInsideCheck = IsPointInsideViewVolume(vertices[triangle.V1Index]) &&
-                                    IsPointInsideViewVolume(vertices[triangle.V2Index]) &&
-                                    IsPointInsideViewVolume(vertices[triangle.V3Index]);
+            bool quickInsideCheck = verticesMask[triangle.V1Index] &&
+                                    verticesMask[triangle.V2Index] &&
+                                    verticesMask[triangle.V3Index];
             
             if (quickInsideCheck)   //if we're totally inside we return the original Triangle which is already in inputList but we need to check the vertices
             {
+                /*  the vertices are already checked in the vertex mask
                 verticesMask[triangle.V1Index] = true;
                 verticesMask[triangle.V2Index] = true;
                 verticesMask[triangle.V3Index] = true;
+                */
             }                      
             else  //if it's not totally inside we run the halfvolume check loop
             {
@@ -80,9 +83,12 @@ namespace _3dGraphics.Graphics
             {
                 //triangle already inside, we add it to the list and mark the vertices
                 toReturn.Add(triangle);
+
+                /*  the vertices are already checked in the vertex mask
                 verticesMask[triangle.V1Index] = true;
                 verticesMask[triangle.V2Index] = true;
-                verticesMask[triangle.V3Index] = true;                
+                verticesMask[triangle.V3Index] = true;
+                */
             }
             else if(numPointsInside == 2)
             {
@@ -235,7 +241,7 @@ namespace _3dGraphics.Graphics
         }
                 
 
-        private static bool IsPointInsideViewVolume(Vector4 p)
+        public static bool IsPointInsideViewVolume(Vector4 p)
         {
             return -p.W <= p.X && p.X <= p.W &&
                     -p.W <= p.Y && p.Y <= p.W &&
