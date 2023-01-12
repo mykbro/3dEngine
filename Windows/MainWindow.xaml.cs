@@ -10,6 +10,7 @@ using DrawingGraphics = System.Drawing.Graphics;
 using DrawingPoint = System.Drawing.Point;
 using DrawingBitmap = System.Drawing.Bitmap;
 using DrawingPen = System.Drawing.Pen;
+using System.Threading.Tasks;
 
 namespace _3dGraphics.Windows
 {
@@ -107,31 +108,19 @@ namespace _3dGraphics.Windows
         {
            
 
-        }
-
-        public void DrawLine(Point p1, Point p2)
-        {            
-            //_canvas.Children.Add(new Line() { X1 = p1.X, Y1 = p1.Y, X2 = p2.X, Y2 = p2.Y, Stroke = Brushes.White });
-        }
-
-        public void DrawFragment(Fragment f)
-        {   
-            Polygon p = new Polygon() { Points = { f.P1, f.P2, f.P3 }, Stroke = Brushes.White, StrokeThickness = 0.25 };
-            //_canvas.Children.Add(p);
-        }
+        }       
         
 
         private void DrawFragmentOnGraphics(Fragment f, DrawingGraphics g)
         {
             int grayLevel = (int) (f.LightIntensity * 255);
             System.Drawing.Color penColor = System.Drawing.Color.FromArgb(grayLevel, grayLevel, grayLevel);
-            DrawingPen renderPen = new DrawingPen(penColor);            
-
-            g.DrawLine(renderPen, (float) f.P1.X, (float) f.P1.Y, (float) f.P2.X, (float) f.P2.Y);
-            g.DrawLine(renderPen, (float) f.P2.X, (float) f.P2.Y, (float) f.P3.X, (float) f.P3.Y);
-            g.DrawLine(renderPen, (float) f.P3.X, (float) f.P3.Y, (float) f.P1.X, (float) f.P1.Y);
+            DrawingPen renderPen = new DrawingPen(penColor);
+            
+            g.DrawLine(renderPen, f.P1, f.P2);          
+            g.DrawLine(renderPen, f.P2, f.P3);           
+            g.DrawLine(renderPen, f.P3, f.P1);                        
         }
-
 
 
         public void DrawFragments(IEnumerable<Fragment> fragments)
@@ -147,11 +136,11 @@ namespace _3dGraphics.Windows
             using(DrawingBitmap bmp = new DrawingBitmap(ScreenWidth, ScreenHeight, wBmp.BackBufferStride, System.Drawing.Imaging.PixelFormat.Format24bppRgb, wBmp.BackBuffer))
             {
                 using(DrawingGraphics g = DrawingGraphics.FromImage(bmp))
-                {
+                {                  
                     foreach(Fragment f in fragments) 
                     {
                         DrawFragmentOnGraphics(f, g);
-                    }
+                    } 
                 }
             }
             wBmp.AddDirtyRect(new Int32Rect(0,0, ScreenWidth, ScreenHeight));

@@ -19,6 +19,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Reflection;
 using System.IO;
+using PointF = System.Drawing.PointF;
 
 
 namespace _3dGraphics
@@ -137,7 +138,7 @@ namespace _3dGraphics
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\teapot.txt");
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\suzanne.txt");
             Mesh objToLoad = LoadMeshFromObjFile(@"D:\bunny.txt");
-            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 100f));
+            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 5f));
             
         }
 
@@ -250,9 +251,9 @@ namespace _3dGraphics
                 for (int tIndex = 0; tIndex < trianglesToRender.Count; tIndex++)
                 {
                     Triangle tempTri = trianglesToRender[tIndex];
-                    Point p1 = new Point(vertices4D[tempTri.V1Index].X, vertices4D[tempTri.V1Index].Y);
-                    Point p2 = new Point(vertices4D[tempTri.V2Index].X, vertices4D[tempTri.V2Index].Y);
-                    Point p3 = new Point(vertices4D[tempTri.V3Index].X, vertices4D[tempTri.V3Index].Y);
+                    PointF p1 = new PointF(vertices4D[tempTri.V1Index].X, vertices4D[tempTri.V1Index].Y);
+                    PointF p2 = new PointF(vertices4D[tempTri.V2Index].X, vertices4D[tempTri.V2Index].Y);
+                    PointF p3 = new PointF(vertices4D[tempTri.V3Index].X, vertices4D[tempTri.V3Index].Y);
 
                     fragments.Add(new Fragment(p1, p2, p3, tempTri.LightIntensity));
                 }
