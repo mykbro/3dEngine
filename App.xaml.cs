@@ -91,9 +91,10 @@ namespace _3dGraphics
             
             Mesh cube = new Mesh(vertices, triangles);
             
+            
             float FOV = 90f;
-            float zNear = 0.1f;
-            float zFar = 100f;
+            float zNear = 0.05f;
+            float zFar = 50f;
             float speedKmh = 6f;
             float rotSpeedDegSec = 60f;
             float fovIncSpeedDegSec = 20f;
@@ -133,10 +134,10 @@ namespace _3dGraphics
 
             //TEAPOT
 
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\teapot.txt");
+            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\teapot.txt");
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\suzanne.txt");
-            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\bunny.txt");
-            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\bunny.txt");
+            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 100f));
             
         }
 
@@ -179,7 +180,7 @@ namespace _3dGraphics
                     verticesMask.Add(false);
                 }
 
-                //we transform the camera from World to Object space for backface culling using normals
+                //we transform the camera from World to Object space for backface culling and illumination using normals 
                 Matrix4x4 worldToLocalMatrix = wObject.WorldToLocalMatrix;
                 Vector3 cameraPosInObjSpace = Vector3.Transform(_world.Camera.Position, worldToLocalMatrix);
 
@@ -188,11 +189,12 @@ namespace _3dGraphics
                 {
                     Triangle tempTriangle = mesh.GetTriangle(tIndex);
                     Vector3 pointToCameraVec = cameraPosInObjSpace - mesh.GetVertex(tempTriangle.V1Index).Position3D;
-                    float scalarProd = Vector3.Dot(pointToCameraVec, mesh.GetNormal(tIndex));
+                    Vector3 pointToCameraVecNormalized = Vector3.Normalize(pointToCameraVec);
+                    float scalarProd = Vector3.Dot(pointToCameraVecNormalized, mesh.GetNormal(tIndex));
 
                     if(scalarProd > 0)
                     {
-                        trianglesToClip.Add(tempTriangle);                        
+                        trianglesToClip.Add(new Triangle(tempTriangle.V1Index, tempTriangle.V2Index, tempTriangle.V3Index, scalarProd));    //we calculate the illumination                        
                         verticesMask[tempTriangle.V1Index] = true;
                         verticesMask[tempTriangle.V2Index] = true;
                         verticesMask[tempTriangle.V3Index] = true;
@@ -243,7 +245,7 @@ namespace _3dGraphics
                     Point p2 = new Point(vertices4D[tempTri.V2Index].X, vertices4D[tempTri.V2Index].Y);
                     Point p3 = new Point(vertices4D[tempTri.V3Index].X, vertices4D[tempTri.V3Index].Y);
 
-                    fragments.Add(new Fragment(p1, p2, p3));
+                    fragments.Add(new Fragment(p1, p2, p3, tempTri.LightIntensity));
                 }
 
                 debugNumVerticesFromObjects += numVertices;

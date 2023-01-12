@@ -17,9 +17,7 @@ namespace _3dGraphics.Windows
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
-    {
-
-        private readonly DrawingPen RenderPen = new DrawingPen(System.Drawing.Brushes.White, 0.25f);        
+    {             
 
         //translations
         private readonly Action _leftArrowPressedCmd;
@@ -124,10 +122,14 @@ namespace _3dGraphics.Windows
         
 
         private void DrawFragmentOnGraphics(Fragment f, DrawingGraphics g)
-        {          
-            g.DrawLine(RenderPen, (float) f.P1.X, (float) f.P1.Y, (float) f.P2.X, (float) f.P2.Y);
-            g.DrawLine(RenderPen, (float) f.P2.X, (float) f.P2.Y, (float) f.P3.X, (float) f.P3.Y);
-            g.DrawLine(RenderPen, (float) f.P3.X, (float) f.P3.Y, (float) f.P1.X, (float) f.P1.Y);
+        {
+            int grayLevel = (int) (f.LightIntensity * 255);
+            System.Drawing.Color penColor = System.Drawing.Color.FromArgb(grayLevel, grayLevel, grayLevel);
+            DrawingPen renderPen = new DrawingPen(penColor);            
+
+            g.DrawLine(renderPen, (float) f.P1.X, (float) f.P1.Y, (float) f.P2.X, (float) f.P2.Y);
+            g.DrawLine(renderPen, (float) f.P2.X, (float) f.P2.Y, (float) f.P3.X, (float) f.P3.Y);
+            g.DrawLine(renderPen, (float) f.P3.X, (float) f.P3.Y, (float) f.P1.X, (float) f.P1.Y);
         }
 
 
