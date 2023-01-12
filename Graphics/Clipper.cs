@@ -13,7 +13,7 @@ namespace _3dGraphics.Graphics
         private enum PlaneId { Near=0, Left=1, Far=2, Right=3, Top=4, Bottom=5 };
         private const int NumPlanes = 6;
 
-        public static List<Triangle> ClipTriangleAndAppendNewVertices(Triangle triangle, List<Vector4> vertices, List<bool> verticesMask, Object vertexListLock)
+        public static List<Triangle> ClipTriangleAndAppendNewVerticesAndTriangles(Triangle triangle, List<Vector4> vertices, List<bool> verticesMask)
         {
             
             
@@ -42,7 +42,7 @@ namespace _3dGraphics.Graphics
 
                     foreach (Triangle t in inputList)
                     {
-                        resultList.AddRange(ClipTriangleToPlane(t, (PlaneId)i, vertices, verticesMask, vertexListLock));
+                        resultList.AddRange(ClipTriangleToPlane(t, (PlaneId)i, vertices, verticesMask));
                     }
 
                     inputList = resultList;
@@ -57,7 +57,7 @@ namespace _3dGraphics.Graphics
             return inputList;
         }
 
-        private static List<Triangle> ClipTriangleToPlane(Triangle triangle, PlaneId planeId, List<Vector4> vertices, List<bool> verticesMask, Object vertexListLock)
+        private static List<Triangle> ClipTriangleToPlane(Triangle triangle, PlaneId planeId, List<Vector4> vertices, List<bool> verticesMask)
         {
             List<Triangle> toReturn = new List<Triangle>();
 
@@ -97,63 +97,40 @@ namespace _3dGraphics.Graphics
                     //we calculate the 2 new points
                     Vector4 newP = ClipLineToPlane(P1, P2, planeId);
                     Vector4 newQ = ClipLineToPlane(P1, P3, planeId);
-
-                    Triangle t1, t2;
-
-                    lock (vertexListLock)
-                    {
-                        //we add a new Triangle with P substituting P1
-                        t1 = new Triangle(vertices.Count, triangle.V2Index, triangle.V3Index, triangle.LightIntensity);
-                        //we add another new Triangle with Q substituting P1 and P substituting P2 keeping the clockwise order
-                        t2 = new Triangle(vertices.Count + 1, vertices.Count, triangle.V3Index, triangle.LightIntensity);
-                        vertices.Add(newP);
-                        vertices.Add(newQ);
-                        verticesMask.Add(true);
-                        verticesMask.Add(true);
-                    }
-
-                    toReturn.Add(t1);
-                    toReturn.Add(t2);
-
+                    //we add a new Triangle with P substituting P1
+                    toReturn.Add(new Triangle(vertices.Count, triangle.V2Index, triangle.V3Index, triangle.LightIntensity));
+                    //we add another new Triangle with Q substituting P1 and P substituting P2 keeping the clockwise order
+                    toReturn.Add(new Triangle(vertices.Count+1, vertices.Count, triangle.V3Index, triangle.LightIntensity));
+                    vertices.Add(newP);
+                    vertices.Add(newQ);
+                    verticesMask.Add(true);
+                    verticesMask.Add(true);
                 }
                 else if (!P2Inside)
                 {                                     
                     Vector4 newP = ClipLineToPlane(P2, P3, planeId);
                     Vector4 newQ = ClipLineToPlane(P1, P2, planeId);
+                    
+                    toReturn.Add(new Triangle(vertices.Count, triangle.V3Index, triangle.V1Index, triangle.LightIntensity));                    
+                    toReturn.Add(new Triangle(vertices.Count + 1, vertices.Count, triangle.V1Index, triangle.LightIntensity));
 
-                    Triangle t1, t2;
-                    lock (vertexListLock)
-                    {
-                        t1 = new Triangle(vertices.Count, triangle.V3Index, triangle.V1Index, triangle.LightIntensity);
-                        t2 = new Triangle(vertices.Count + 1, vertices.Count, triangle.V1Index, triangle.LightIntensity);
-
-                        vertices.Add(newP);
-                        vertices.Add(newQ);
-                        verticesMask.Add(true);
-                        verticesMask.Add(true);
-                    }                    
-
-                    toReturn.Add(t1);
-                    toReturn.Add(t2);
+                    vertices.Add(newP);
+                    vertices.Add(newQ);
+                    verticesMask.Add(true);
+                    verticesMask.Add(true);
                 }
                 else  //P1 AND P2 inside, P3 outside
                 {
                     Vector4 newP = ClipLineToPlane(P1, P3, planeId);
                     Vector4 newQ = ClipLineToPlane(P2, P3, planeId);
 
-                    Triangle t1, t2;
-                    lock (vertexListLock)
-                    {
-                        t1 = new Triangle(vertices.Count, triangle.V1Index, triangle.V2Index, triangle.LightIntensity);
-                        t2 = new Triangle(vertices.Count + 1, vertices.Count, triangle.V2Index, triangle.LightIntensity);
+                    toReturn.Add(new Triangle(vertices.Count, triangle.V1Index, triangle.V2Index, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(vertices.Count + 1, vertices.Count, triangle.V2Index, triangle.LightIntensity));
 
-                        vertices.Add(newP);
-                        vertices.Add(newQ);
-                        verticesMask.Add(true);
-                        verticesMask.Add(true);
-                    }
-                    toReturn.Add(t1);
-                    toReturn.Add(t2);
+                    vertices.Add(newP);
+                    vertices.Add(newQ);
+                    verticesMask.Add(true);
+                    verticesMask.Add(true);
                 }
             }
             else if(numPointsInside == 1)
@@ -165,57 +142,33 @@ namespace _3dGraphics.Graphics
                     Vector4 newP3 = ClipLineToPlane(P1, P3, planeId);
                     //add the "new" triangle to the ones to return and process against the other planes but NOT to the output triangle list
                     //the V2 and V3 indexes are for the vertices we've created and going to add. This vertices will be valid even if we split the triangles even further
-                    Triangle t;
-
-                    lock (vertexListLock)
-                    {
-                        t = new Triangle(triangle.V1Index, vertices.Count, vertices.Count + 1, triangle.LightIntensity);
-                        //we add the new vertices
-                        vertices.Add(newP2);
-                        vertices.Add(newP3);
-                        //and we mark them as valid to process further
-                        verticesMask.Add(true);
-                        verticesMask.Add(true);
-                    }
-
-                    toReturn.Add(t);
+                    toReturn.Add(new Triangle(triangle.V1Index, vertices.Count, vertices.Count + 1, triangle.LightIntensity));
+                    //we add the new vertices
+                    vertices.Add(newP2);
+                    vertices.Add(newP3);
+                    //and we mark them as valid to process further
+                    verticesMask.Add(true);
+                    verticesMask.Add(true);
                 }
                 else if(P2Inside)
                 {
                     Vector4 newP1 = ClipLineToPlane(P1, P2, planeId);
                     Vector4 newP3 = ClipLineToPlane(P2, P3, planeId);
-
-                    Triangle t;
-
-                    lock (vertexListLock)
-                    {
-                        t = new Triangle(vertices.Count, triangle.V2Index, vertices.Count + 1, triangle.LightIntensity);
-                        vertices.Add(newP1);
-                        vertices.Add(newP3);
-                        verticesMask.Add(true);
-                        verticesMask.Add(true);
-                    }
-
-                    toReturn.Add(t);
-                   
+                    toReturn.Add(new Triangle(vertices.Count, triangle.V2Index, vertices.Count + 1, triangle.LightIntensity));                  
+                    vertices.Add(newP1);
+                    vertices.Add(newP3);                    
+                    verticesMask.Add(true);
+                    verticesMask.Add(true);
                 }
                 else    //P3 inside
                 {
                     Vector4 newP1 = ClipLineToPlane(P1, P3, planeId);
-                    Vector4 newP2 = ClipLineToPlane(P2, P3, planeId);
-
-                    Triangle t;
-
-                    lock (vertexListLock)
-                    {
-                        t = new Triangle(vertices.Count, vertices.Count + 1, triangle.V3Index, triangle.LightIntensity);
-                        vertices.Add(newP1);
-                        vertices.Add(newP2);
-                        verticesMask.Add(true);
-                        verticesMask.Add(true);
-                    }               
-
-                    toReturn.Add(t);
+                    Vector4 newP2 = ClipLineToPlane(P2, P3, planeId);                    
+                    toReturn.Add(new Triangle(vertices.Count, vertices.Count + 1, triangle.V3Index, triangle.LightIntensity));
+                    vertices.Add(newP1);
+                    vertices.Add(newP2);
+                    verticesMask.Add(true);
+                    verticesMask.Add(true);
                 }
             }
             else    //no points inside

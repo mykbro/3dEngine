@@ -20,7 +20,6 @@ using System.Windows.Shapes;
 using System.Reflection;
 using System.IO;
 using PointF = System.Drawing.PointF;
-using System.Windows.Media.Media3D;
 
 
 namespace _3dGraphics
@@ -104,9 +103,6 @@ namespace _3dGraphics
             Matrix4x4 viewportMatrix = _world.Camera.ViewPortTransformMatrix; 
             Matrix4x4 worldToProj = worldToCamera * projMatrix;
 
-            Object vertexListLock = new Object();
-            Object triangleListLock = new Object();
-
             List<Fragment> fragments = new List<Fragment>();
 
             int debugNumVerticesFromObjects = 0;
@@ -143,28 +139,66 @@ namespace _3dGraphics
                 Vector3 cameraPosInObjSpace = Vector3.Transform(_world.Camera.Position, worldToLocalMatrix);
 
                 //...and we check each mesh's triangle asserting the vertices' flags and adding the triangle to the processTriangles list
-                
-                Parallel.For(0, numTriangles, (tIndex) => TriangleBackFaceCullAndLightning(tIndex, cameraPosInObjSpace, vertices4D, verticesMask, trianglesToClip, mesh, triangleListLock));
-               
+                for (int tIndex = 0; tIndex < numTriangles; tIndex++)
+                {
+                    Triangle tempTriangle = mesh.GetTriangle(tIndex);
+                    Vector3 pointToCameraVec = cameraPosInObjSpace - mesh.GetVertex(tempTriangle.V1Index).Position3D;
+                    Vector3 pointToCameraVecNormalized = Vector3.Normalize(pointToCameraVec);
+                    float scalarProd = Vector3.Dot(pointToCameraVecNormalized, mesh.GetNormal(tIndex));
+
+                    if(scalarProd > 0)
+                    {
+                        trianglesToClip.Add(new Triangle(tempTriangle.V1Index, tempTriangle.V2Index, tempTriangle.V3Index, scalarProd));    //we calculate the illumination                        
+                        verticesMask[tempTriangle.V1Index] = true;
+                        verticesMask[tempTriangle.V2Index] = true;
+                        verticesMask[tempTriangle.V3Index] = true;
+                    }                    
+                }              
 
                 //calculate global Matrix
                 Matrix4x4 localToWorld = wObject.LocalToWorldMatrix;
                 Matrix4x4 globalMatrix = localToWorld * worldToProj;
 
                 //projection
-                Parallel.For(0, vertices4D.Count, (vIndex) => ProjectVertex(vIndex, vertices4D, verticesMask, globalMatrix));
-                
+                for (int vIndex = 0; vIndex < vertices4D.Count; vIndex++)
+                {
+                    if (verticesMask[vIndex])
+                    {
+                        Vector4 temp = Vector4.Transform(vertices4D[vIndex], globalMatrix);
+                        vertices4D[vIndex] = temp;
+                        if (Clipper.IsPointInsideViewVolume(temp))
+                        {
+                            //we leave the vertexMash to true to signal that the vertex is totally inside (for the next clip stage)
+                        }
+                        else
+                        {
+                            verticesMask[vIndex] = false;  //we reset the mask for the clipping stage
+                        }
+                        
+                    }                                       
+                }
                 
                 //we create a new List<Triangle> for the triangles that passes the clip stage initializing it to trianglesToClip.Count
                 List<Triangle> trianglesToRender = new List<Triangle>(trianglesToClip.Count);
 
                 //triangle clipping
-                Parallel.For(0, trianglesToClip.Count, (tIndex) => ClipTriangles(tIndex, vertices4D, verticesMask, trianglesToClip, trianglesToRender, triangleListLock, vertexListLock));
-
+                for (int tIndex = 0; tIndex < trianglesToClip.Count; tIndex++)
+                {
+                    List<Triangle> clipResults = Clipper.ClipTriangleAndAppendNewVerticesAndTriangles(trianglesToClip[tIndex], vertices4D, verticesMask);
+                    trianglesToRender.AddRange(clipResults);
+                }
 
                 //division and transformation to viewport
-                Parallel.For(0, vertices4D.Count, (vIndex) => DivisionAndViewportTransform(vIndex, vertices4D, verticesMask, viewportMatrix));
-                
+                for (int vIndex = 0; vIndex < vertices4D.Count; vIndex++)
+                {
+                    if (verticesMask[vIndex])
+                    {
+                        Vector4 temp = vertices4D[vIndex];
+                        Vector4 dividedVertex = temp / temp.W;                        
+                        
+                        vertices4D[vIndex] = Vector4.Transform(dividedVertex, viewportMatrix);
+                    }                        
+                }
 
                 //creating the fragments to display
                 for (int tIndex = 0; tIndex < trianglesToRender.Count; tIndex++)
@@ -288,66 +322,6 @@ namespace _3dGraphics
 
                 return new Mesh(vertices, triangles);
             }
-        }
-
-        // METHODS FOR PARALLEL
-
-        private static void TriangleBackFaceCullAndLightning(int tIndex, Vector3 cameraPosInObjSpace, List<Vector4> vertices, List<bool> verticesMask, List<Triangle> trianglesToClip, Mesh mesh, Object triangleListLock)
-        {
-            Triangle tempTriangle = mesh.GetTriangle(tIndex);
-            Vector3 pointToCameraVec = cameraPosInObjSpace - mesh.GetVertex(tempTriangle.V1Index).Position3D;
-            Vector3 pointToCameraVecNormalized = Vector3.Normalize(pointToCameraVec);
-            float scalarProd = Vector3.Dot(pointToCameraVecNormalized, mesh.GetNormal(tIndex));
-
-            if (scalarProd > 0)
-            {
-                lock (triangleListLock)
-                {
-                    trianglesToClip.Add(new Triangle(tempTriangle.V1Index, tempTriangle.V2Index, tempTriangle.V3Index, scalarProd));    //we calculate the illumination                        
-                }
-                //these are safe to update outside a lock
-                verticesMask[tempTriangle.V1Index] = true;
-                verticesMask[tempTriangle.V2Index] = true;
-                verticesMask[tempTriangle.V3Index] = true;
-            }
-        }
-
-        private static void ProjectVertex(int vIndex, List<Vector4> vertices4D, List<bool> verticesMask, Matrix4x4 globalMatrix)
-        {
-            if (verticesMask[vIndex])
-            {
-                Vector4 temp = Vector4.Transform(vertices4D[vIndex], globalMatrix);
-                vertices4D[vIndex] = temp;
-                if (Clipper.IsPointInsideViewVolume(temp))
-                {
-                    //we leave the vertexMash to true to signal that the vertex is totally inside (for the next clip stage)
-                }
-                else
-                {
-                    verticesMask[vIndex] = false;  //we reset the mask for the clipping stage
-                }
-
-            }
-        }
-
-        private static void DivisionAndViewportTransform(int vIndex, List<Vector4> vertices4D, List<bool> verticesMask, Matrix4x4 viewportMatrix)
-        {
-            if (verticesMask[vIndex])
-            {
-                Vector4 temp = vertices4D[vIndex];
-                Vector4 dividedVertex = temp / temp.W;
-
-                vertices4D[vIndex] = Vector4.Transform(dividedVertex, viewportMatrix);
-            }
-        }
-
-        private static void ClipTriangles(int tIndex, List<Vector4> vertices4D, List<bool> verticesMask, List<Triangle> trianglesToClip, List<Triangle> trianglesToRender, Object triangleListLock, Object vertexListLock)
-        {
-            List<Triangle> clipResults = Clipper.ClipTriangleAndAppendNewVertices(trianglesToClip[tIndex], vertices4D, verticesMask, vertexListLock);
-            lock (triangleListLock)
-            {
-                trianglesToRender.AddRange(clipResults);
-            }            
         }
 
 
