@@ -12,7 +12,7 @@ namespace _3dGraphics.Graphics
     internal class RenderTarget
     {
         private byte[] _data;        
-        private readonly float[] _zBuffer;
+        private float[] _zBuffer;
         private readonly Object[] _pixelLocks;
         private readonly int _width;
         private readonly int _height;
@@ -97,6 +97,7 @@ namespace _3dGraphics.Graphics
                             Vector3 p_p2 = p - p2;
 
                             float interpolatedZ = -((p1_p2.Y * p3_p2.Z - p1_p2.Z * p3_p2.Y) * p_p2.X + (p1_p2.Z * p3_p2.X - p1_p2.X * p3_p2.Z) * p_p2.Y) / (p1_p2.X * p3_p2.Y - p1_p2.Y * p3_p2.X) + p2.Z;
+                            float invertedInterZ = 1 / interpolatedZ;
 
                             //float interpolatedZ = (p1.Z + p2.Z + p3.Z) / 3;   //simple implementation
 
@@ -105,9 +106,9 @@ namespace _3dGraphics.Graphics
 
                             lock (_pixelLocks[pixelNr])
                             {    
-                                if (interpolatedZ < _zBuffer[pixelNr])       //we're now using the interpolated Z
+                                if (invertedInterZ > _zBuffer[pixelNr])       //we're now using the interpolated Z
                                 {
-                                    _zBuffer[pixelNr] = interpolatedZ;
+                                    _zBuffer[pixelNr] = invertedInterZ;
 
                                     int pixelStartingByte = pixelNr * Stride;
 
@@ -163,10 +164,13 @@ namespace _3dGraphics.Graphics
 
         public void ClearZBuffer()
         {
+            /*
             for (int i = 0; i < _zBuffer.Length; i++)
             {
                 _zBuffer[i] = float.PositiveInfinity;
             }
+            */
+            _zBuffer = new float[_width * _height];
         }
 
         private void InitPixelLocks()
