@@ -73,19 +73,8 @@ namespace _3dGraphics
             float fovIncSpeedDegSec = 30f;
 
             //we create the world and populate it with objects
-            _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);             
-
-            /*
-            //big distances test
-            
-            float d = 10e6f;
-            Vector3 movement = Vector3.One * d;
-            _world.Camera.MoveBy(movement);
-            for (int i = 0; i < 8; i++)
-            {
-                _world.Objects[i].MoveBy(movement);
-            }
-            */
+            _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec); 
+             
 
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt");
             Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");
@@ -96,6 +85,18 @@ namespace _3dGraphics
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(0f, 0f, 10f), 1f));
+
+            _world.Camera.MoveBy(new Vector3(0f, 3f, -6f));
+            /*
+            //big distances test            
+            float d = 2e6f;
+            Vector3 movement = Vector3.One * d;
+            _world.Camera.MoveBy(movement);
+            foreach (WorldObject obj in _world.Objects)
+            {
+                obj.MoveBy(movement);
+            }
+            */
         }
 
         private void Render()

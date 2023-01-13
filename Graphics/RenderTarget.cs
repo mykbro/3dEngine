@@ -132,8 +132,9 @@ namespace _3dGraphics.Graphics
 
         }
         private static Vector3 PointToVector3(Point p)
-        {  
-            return new Vector3((2 * p.X + 1) / 2f, (2 * p.Y + 1) / 2f, 0f);
+        {
+            //return new Vector3((2 * p.X + 1) / 2f, (2 * p.Y + 1) / 2f, 0f);
+            return new Vector3(p.X + 0.5f, p.Y + 0.5f, 0f);
         }   
         
         private static Vector3 ProjectTo2D(Vector3 p)
