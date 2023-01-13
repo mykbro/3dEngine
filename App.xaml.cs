@@ -73,20 +73,22 @@ namespace _3dGraphics
             float fovIncSpeedDegSec = 30f;
 
             //we create the world and populate it with objects
-            _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec); 
-             
+            _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
 
+            //Generate100Cubes();
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt");
-            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\suzanne.txt");
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\bunny.txt");
-            
+            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\bunny.txt");
+
             _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(0f, 0f, 10f), 1f));
 
-            _world.Camera.MoveBy(new Vector3(0f, 3f, -6f));
+            _world.Camera.MoveBy(new Vector3(-2.5f, 4f, -2.5f));
+            _world.Camera.RotateBy(new Vector3(0.45f, 0.75f, 0));
+
             /*
             //big distances test            
             float d = 2e6f;
@@ -99,140 +101,34 @@ namespace _3dGraphics
             */
         }
 
+        private void Generate100Cubes()
+        {
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");
+
+            for(int i=0; i<3; i++)
+            {
+                for(int j=0; j<3; j++)
+                {
+                    _world.Objects.Add(new WorldObject(objToLoad, new Vector3(i*10, 0, j*10), 1f));
+                }
+            }
+        }
+
         private void Render()
         {           
 
             Matrix4x4 worldToCamera = _world.Camera.WorldToCameraMatrix;
             Matrix4x4 projMatrix = _world.Camera.ProjectionMatrix;
             Matrix4x4 viewportMatrix = _world.Camera.ViewPortTransformMatrix; 
-            Matrix4x4 worldToProj = worldToCamera * projMatrix;
+            Matrix4x4 worldToProj = worldToCamera * projMatrix;            
 
-            List<Fragment> fragments = new List<Fragment>();
-
-            int debugNumVerticesFromObjects = 0;
-            int debugNumTrianglesFromObjects = 0;
-            int debugNumTrianglesSentToClip = 0;         
-            int debugNumTrianglesSentToRender = 0;
+            DebugInfo debugInfo = new DebugInfo();
 
             //we clear our RenderTarget for the new pass
             _renderTarget.Clear();
 
-            //for each WorldObject
-            for (int i = 0; i < _world.Objects.Count; i++)
-            {
-                WorldObject wObject = _world.Objects[i];        //store to avoid repetitive calls
-                Mesh mesh= wObject.Mesh;                        //store to avoid repetitive calls
-                int numVertices = mesh.VertexCount;             //store to avoid repetitive calls
-                int numTriangles = mesh.TriangleCount;          //store to avoid repetitive calls
-
-                //we create an empty List of Vector4 sized to the total nr of Vertices...
-                //we'll fill it all but we'll avoid relocations and we're going to create new Vertices during the Clipping stage so an Array would not work
-                //we'll also create a companion list of bools that will keep track of the Vertices we need to transform proceeding in the pipeline (initialized to false)
-                List<Vector4> vertices4D = new List<Vector4>(numVertices);
-                List<bool> verticesMask = new List<bool>(numVertices);
-                //we also create a list for the Triangles that we want to clip sizing it to TriangleCount... we'll probably fill half of it
-                List<Triangle> trianglesToClip = new List<Triangle>(numTriangles);
-               
-
-                //we populate the lists
-                for (int vIndex = 0; vIndex < numVertices; vIndex++)
-                {
-                    vertices4D.Add(mesh.GetVertex(vIndex).Position4D);
-                    verticesMask.Add(false);
-                }
-
-                //we transform the camera from World to Object space for backface culling and illumination using normals 
-                Matrix4x4 worldToLocalMatrix = wObject.WorldToLocalMatrix;
-                Vector3 cameraPosInObjSpace = Vector3.Transform(_world.Camera.Position, worldToLocalMatrix);
-
-                //...and we check each mesh's triangle asserting the vertices' flags and adding the triangle to the processTriangles list
-                for (int tIndex = 0; tIndex < numTriangles; tIndex++)
-                {
-                    Triangle tempTriangle = mesh.GetTriangle(tIndex);
-                    Vector3 triangleBarycenter = (mesh.GetVertex(tempTriangle.V1Index).Position3D + mesh.GetVertex(tempTriangle.V2Index).Position3D + mesh.GetVertex(tempTriangle.V3Index).Position3D) / 3f;                   
-                    Vector3 pointToCameraVec = cameraPosInObjSpace - triangleBarycenter;
-                    Vector3 pointToCameraVecNormalized = Vector3.Normalize(pointToCameraVec);
-                    float scalarProd = Vector3.Dot(pointToCameraVecNormalized, mesh.GetNormal(tIndex));
-
-                    if(scalarProd > 0)
-                    {
-                        trianglesToClip.Add(new Triangle(tempTriangle.V1Index, tempTriangle.V2Index, tempTriangle.V3Index, scalarProd));    //we calculate the illumination                        
-                        verticesMask[tempTriangle.V1Index] = true;
-                        verticesMask[tempTriangle.V2Index] = true;
-                        verticesMask[tempTriangle.V3Index] = true;
-                    }                    
-                }              
-
-                //calculate global Matrix
-                Matrix4x4 localToWorld = wObject.LocalToWorldMatrix;
-                Matrix4x4 globalMatrix = localToWorld * worldToProj;
-
-                //projection
-                for (int vIndex = 0; vIndex < vertices4D.Count; vIndex++)
-                {
-                    if (verticesMask[vIndex])
-                    {
-                        Vector4 temp = Vector4.Transform(vertices4D[vIndex], globalMatrix);
-                        vertices4D[vIndex] = temp;
-                        if (Clipper.IsPointInsideViewVolume(temp))
-                        {
-                            //we leave the vertexMash to true to signal that the vertex is totally inside (for the next clip stage)
-                        }
-                        else
-                        {
-                            verticesMask[vIndex] = false;  //we reset the mask for the clipping stage
-                        }
-                        
-                    }                                       
-                }
-                
-                //we create a new List<Triangle> for the triangles that passes the clip stage initializing it to trianglesToClip.Count
-                List<Triangle> trianglesToRender = new List<Triangle>(trianglesToClip.Count);
-
-                //triangle clipping
-                for (int tIndex = 0; tIndex < trianglesToClip.Count; tIndex++)
-                {
-                    List<Triangle> clipResults = Clipper.ClipTriangleAndAppendNewVerticesAndTriangles(trianglesToClip[tIndex], vertices4D, verticesMask);
-                    trianglesToRender.AddRange(clipResults);
-                }
-
-                //division and transformation to viewport
-                for (int vIndex = 0; vIndex < vertices4D.Count; vIndex++)
-                {
-                    if (verticesMask[vIndex])
-                    {
-                        Vector4 temp = vertices4D[vIndex];
-                        Vector4 dividedVertex = temp / temp.W;                        
-                        
-                        vertices4D[vIndex] = Vector4.Transform(dividedVertex, viewportMatrix);
-                    }                        
-                }
-
-                //creating the fragments to display
-                /*
-                for (int tIndex = 0; tIndex < trianglesToRender.Count; tIndex++)
-                {
-                    Triangle tempTri = trianglesToRender[tIndex];
-                    
-                    Vector4 v1 = vertices4D[tempTri.V1Index];
-                    Vector4 v2 = vertices4D[tempTri.V2Index];
-                    Vector4 v3 = vertices4D[tempTri.V3Index];
-
-                    int colorLevel = (int)(tempTri.LightIntensity * 255);
-                    DrawingColor col = DrawingColor.FromArgb(colorLevel, colorLevel, colorLevel);
-
-                    Fragment3D frag = new Fragment3D(new Vector3(v1.X, v1.Y, v1.Z), new Vector3(v2.X, v2.Y, v2.Z), new Vector3(v3.X, v3.Y, v3.Z), col);
-
-                    _renderTarget.RenderFragment(frag);
-                }
-                */
-                Parallel.ForEach(trianglesToRender, (t) => RenderFragment(t, vertices4D));               
-
-                debugNumVerticesFromObjects += numVertices;
-                debugNumTrianglesFromObjects += numTriangles;
-                debugNumTrianglesSentToClip += trianglesToClip.Count;
-                debugNumTrianglesSentToRender += trianglesToRender.Count;
-            }           
+            //we render each object concurrently (every task will also render each fragment concurrently)
+            Parallel.ForEach(_world.Objects, (wObj) => RenderObject(wObj, worldToProj, viewportMatrix, debugInfo));            
 
             //preparing text to display in the console
             StringBuilder consoleSB = new StringBuilder();
@@ -246,10 +142,10 @@ namespace _3dGraphics
             consoleSB.AppendLine();
             consoleSB.AppendLine(String.Format("FOV: {0:F3}", _world.Camera.FOV));
             consoleSB.AppendLine();
-            consoleSB.AppendLine(String.Format("Vertices: {0}", debugNumVerticesFromObjects));
-            consoleSB.AppendLine(String.Format("Triangles (meshes): {0}", debugNumTrianglesFromObjects));
-            consoleSB.AppendLine(String.Format("Triangles (facing): {0}", debugNumTrianglesSentToClip));
-            consoleSB.AppendLine(String.Format("Triangles (render): {0}", debugNumTrianglesSentToRender));
+            consoleSB.AppendLine(String.Format("Vertices: {0}", debugInfo.NumVerticesFromObjects));
+            consoleSB.AppendLine(String.Format("Triangles (meshes): {0}", debugInfo.NumTrianglesFromObjects));
+            consoleSB.AppendLine(String.Format("Triangles (facing): {0}", debugInfo.NumTrianglesSentToClip));
+            consoleSB.AppendLine(String.Format("Triangles (render): {0}", debugInfo.NumTrianglesSentToRender));
 
             String consoleText = consoleSB.ToString();
                        
@@ -313,6 +209,124 @@ namespace _3dGraphics
             Fragment3D frag = new Fragment3D(new Vector3(v1.X, v1.Y, v1.Z), new Vector3(v2.X, v2.Y, v2.Z), new Vector3(v3.X, v3.Y, v3.Z), col);
 
             _renderTarget.RenderFragment(frag);
+        }
+
+        private void RenderObject(WorldObject wObject, Matrix4x4 worldToProj, Matrix4x4 viewportMatrix, DebugInfo debugInfo) 
+        {            
+            Mesh mesh = wObject.Mesh;                        //store to avoid repetitive calls
+            int numVertices = mesh.VertexCount;             //store to avoid repetitive calls
+            int numTriangles = mesh.TriangleCount;          //store to avoid repetitive calls
+
+            //we create an empty List of Vector4 sized to the total nr of Vertices...
+            //we'll fill it all but we'll avoid relocations and we're going to create new Vertices during the Clipping stage so an Array would not work
+            //we'll also create a companion list of bools that will keep track of the Vertices we need to transform proceeding in the pipeline (initialized to false)
+            List<Vector4> vertices4D = new List<Vector4>(numVertices);
+            List<bool> verticesMask = new List<bool>(numVertices);
+            //we also create a list for the Triangles that we want to clip sizing it to TriangleCount... we'll probably fill half of it
+            List<Triangle> trianglesToClip = new List<Triangle>(numTriangles);
+
+
+            //we populate the lists
+            for (int vIndex = 0; vIndex < numVertices; vIndex++)
+            {
+                vertices4D.Add(mesh.GetVertex(vIndex).Position4D);
+                verticesMask.Add(false);
+            }
+
+            //we transform the camera from World to Object space for backface culling and illumination using normals 
+            Matrix4x4 worldToLocalMatrix = wObject.WorldToLocalMatrix;
+            Vector3 cameraPosInObjSpace = Vector3.Transform(_world.Camera.Position, worldToLocalMatrix);
+
+            //...and we check each mesh's triangle asserting the vertices' flags and adding the triangle to the processTriangles list
+            for (int tIndex = 0; tIndex < numTriangles; tIndex++)
+            {
+                Triangle tempTriangle = mesh.GetTriangle(tIndex);
+                Vector3 triangleBarycenter = (mesh.GetVertex(tempTriangle.V1Index).Position3D + mesh.GetVertex(tempTriangle.V2Index).Position3D + mesh.GetVertex(tempTriangle.V3Index).Position3D) / 3f;
+                Vector3 pointToCameraVec = cameraPosInObjSpace - triangleBarycenter;
+                Vector3 pointToCameraVecNormalized = Vector3.Normalize(pointToCameraVec);
+                float scalarProd = Vector3.Dot(pointToCameraVecNormalized, mesh.GetNormal(tIndex));
+
+                if (scalarProd > 0)
+                {
+                    trianglesToClip.Add(new Triangle(tempTriangle.V1Index, tempTriangle.V2Index, tempTriangle.V3Index, scalarProd));    //we calculate the illumination                        
+                    verticesMask[tempTriangle.V1Index] = true;
+                    verticesMask[tempTriangle.V2Index] = true;
+                    verticesMask[tempTriangle.V3Index] = true;
+                }
+            }
+
+            //calculate global Matrix
+            Matrix4x4 localToWorld = wObject.LocalToWorldMatrix;
+            Matrix4x4 globalMatrix = localToWorld * worldToProj;
+
+            //projection
+            for (int vIndex = 0; vIndex < vertices4D.Count; vIndex++)
+            {
+                if (verticesMask[vIndex])
+                {
+                    Vector4 temp = Vector4.Transform(vertices4D[vIndex], globalMatrix);
+                    vertices4D[vIndex] = temp;
+                    if (Clipper.IsPointInsideViewVolume(temp))
+                    {
+                        //we leave the vertexMash to true to signal that the vertex is totally inside (for the next clip stage)
+                    }
+                    else
+                    {
+                        verticesMask[vIndex] = false;  //we reset the mask for the clipping stage
+                    }
+
+                }
+            }
+
+            //we create a new List<Triangle> for the triangles that passes the clip stage initializing it to trianglesToClip.Count
+            List<Triangle> trianglesToRender = new List<Triangle>(trianglesToClip.Count);
+
+            //triangle clipping
+            for (int tIndex = 0; tIndex < trianglesToClip.Count; tIndex++)
+            {
+                List<Triangle> clipResults = Clipper.ClipTriangleAndAppendNewVerticesAndTriangles(trianglesToClip[tIndex], vertices4D, verticesMask);
+                trianglesToRender.AddRange(clipResults);
+            }
+
+            //division and transformation to viewport
+            for (int vIndex = 0; vIndex < vertices4D.Count; vIndex++)
+            {
+                if (verticesMask[vIndex])
+                {
+                    Vector4 temp = vertices4D[vIndex];
+                    Vector4 dividedVertex = temp / temp.W;
+
+                    vertices4D[vIndex] = Vector4.Transform(dividedVertex, viewportMatrix);
+                }
+            }
+
+            //creating the fragments to display
+            /*
+            for (int tIndex = 0; tIndex < trianglesToRender.Count; tIndex++)
+            {
+                Triangle tempTri = trianglesToRender[tIndex];
+
+                Vector4 v1 = vertices4D[tempTri.V1Index];
+                Vector4 v2 = vertices4D[tempTri.V2Index];
+                Vector4 v3 = vertices4D[tempTri.V3Index];
+
+                int colorLevel = (int)(tempTri.LightIntensity * 255);
+                DrawingColor col = DrawingColor.FromArgb(colorLevel, colorLevel, colorLevel);
+
+                Fragment3D frag = new Fragment3D(new Vector3(v1.X, v1.Y, v1.Z), new Vector3(v2.X, v2.Y, v2.Z), new Vector3(v3.X, v3.Y, v3.Z), col);
+
+                _renderTarget.RenderFragment(frag);
+            }
+            */
+            Parallel.ForEach(trianglesToRender, (t) => RenderFragment(t, vertices4D));
+
+            lock (debugInfo)
+            {
+                debugInfo.NumVerticesFromObjects += numVertices;
+                debugInfo.NumTrianglesFromObjects += numTriangles;
+                debugInfo.NumTrianglesSentToClip += trianglesToClip.Count;
+                debugInfo.NumTrianglesSentToRender += trianglesToRender.Count;
+            }        
         }
         
 
