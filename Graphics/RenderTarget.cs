@@ -5,12 +5,13 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media.Media3D;
 
 namespace _3dGraphics.Graphics
 {
     internal class RenderTarget
     {
-        private readonly byte[] _data;        
+        private byte[] _data;        
         private readonly float[] _zBuffer;
         private readonly Object[] _pixelLocks;
         private readonly int _width;
@@ -155,12 +156,13 @@ namespace _3dGraphics.Graphics
 
         public void Clear()
         {
-            
+            /*
             for(int i=0; i<_data.Length; i++)
             {
                 _data[i] = 0;                
             }
-            
+            */
+            _data = new byte[_width * _height * Stride];            
 
             ClearZBuffer();
         }
