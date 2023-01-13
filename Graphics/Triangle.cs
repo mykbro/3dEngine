@@ -14,20 +14,20 @@ namespace _3dGraphics.Graphics
         private readonly int _v1Index;
         private readonly int _v2Index;
         private readonly int _v3Index;
-        private readonly float _lightIntensity; 
+        private readonly Color _color; 
 
         public int V1Index => _v1Index;
         public int V2Index => _v2Index;
         public int V3Index => _v3Index;    
-        public float LightIntensity => _lightIntensity;
+        public Color Color => _color;
 
 
-        public Triangle(int v1Index, int v2Index, int v3Index, float lightInt)
+        public Triangle(int v1Index, int v2Index, int v3Index, Color color)
         {
             _v1Index = v1Index;
             _v2Index = v2Index;
-            _v3Index = v3Index;           
-            _lightIntensity = lightInt;
+            _v3Index = v3Index;
+            _color = color;
         }
         
     }
