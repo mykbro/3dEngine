@@ -70,7 +70,7 @@ namespace _3dGraphics
             float zFar = 50f;
             float speedKmh = 6f;
             float rotSpeedDegSec = 60f;
-            float fovIncSpeedDegSec = 20f;
+            float fovIncSpeedDegSec = 30f;
 
             //we create the world and populate it with objects
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);             
@@ -88,14 +88,14 @@ namespace _3dGraphics
             */
 
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt");
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");
+            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\suzanne.txt");
-            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\bunny.txt");
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\bunny.txt");
             
             _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
-            _world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
-            _world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
-            _world.Objects.Add(new WorldObject(objToLoad, new Vector3(0f, 0f, 10f), 1f));
+            //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
+            //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
+            //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(0f, 0f, 10f), 1f));
         }
 
         private void Render()
