@@ -88,9 +88,9 @@ namespace _3dGraphics
             */
 
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt");
-            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\suzanne.txt");
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\bunny.txt");
+            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\bunny.txt");
             
             _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
@@ -148,7 +148,8 @@ namespace _3dGraphics
                 for (int tIndex = 0; tIndex < numTriangles; tIndex++)
                 {
                     Triangle tempTriangle = mesh.GetTriangle(tIndex);
-                    Vector3 pointToCameraVec = cameraPosInObjSpace - mesh.GetVertex(tempTriangle.V1Index).Position3D;
+                    Vector3 triangleBarycenter = (mesh.GetVertex(tempTriangle.V1Index).Position3D + mesh.GetVertex(tempTriangle.V2Index).Position3D + mesh.GetVertex(tempTriangle.V3Index).Position3D) / 3f;
+                    Vector3 pointToCameraVec = cameraPosInObjSpace - triangleBarycenter;
                     Vector3 pointToCameraVecNormalized = Vector3.Normalize(pointToCameraVec);
                     float scalarProd = Vector3.Dot(pointToCameraVecNormalized, mesh.GetNormal(tIndex));
 

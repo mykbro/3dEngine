@@ -40,13 +40,6 @@ namespace _3dGraphics.Graphics
             int minX = (int) Math.Min(Math.Min(p1.X, p2.X), p3.X);
             int minY = (int) Math.Min(Math.Min(p1.Y, p2.Y), p3.Y);
 
-            /*
-            //we "normalize" x,y to the pixel center and set Z to 0 for the inside/outside check cross product
-            Vector3 p1 = PointToVector3(p1_2D);
-            Vector3 p2 = PointToVector3(p2_2D);
-            Vector3 p3 = PointToVector3(p3_2D);
-            */
-
             //we cache some vector operation
             Vector3 p2_p3 = p2 - p3;    //vector A in AxB
             Vector3 p1_p2 = p1 - p2;
