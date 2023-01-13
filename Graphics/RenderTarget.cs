@@ -40,10 +40,10 @@ namespace _3dGraphics.Graphics
             Vector3 p3 = fragment.P3;            
 
             //we determine the screen area we need to check by calculating the rectangle that contains the triangle (we're not checking the whole screen...)
-            int maxX = (int) Math.Max(Math.Max(p1.X, p2.X), p3.X);
-            int maxY = (int) Math.Max(Math.Max(p1.Y, p2.Y), p3.Y);
-            int minX = (int) Math.Min(Math.Min(p1.X, p2.X), p3.X);
-            int minY = (int) Math.Min(Math.Min(p1.Y, p2.Y), p3.Y);
+            int maxX = Math.Min((int) Math.Max(Math.Max(p1.X, p2.X), p3.X), _width - 1);
+            int maxY = Math.Min((int) Math.Max(Math.Max(p1.Y, p2.Y), p3.Y), _height - 1);
+            int minX = Math.Max((int) Math.Min(Math.Min(p1.X, p2.X), p3.X) , 0);    //constrained to 0
+            int minY = Math.Max((int) Math.Min(Math.Min(p1.Y, p2.Y), p3.Y), 0);     //constrained to 0
 
             //we cache some vector operation
             Vector3 p2_p3 = p2 - p3;    //vector A in AxB
@@ -85,40 +85,33 @@ namespace _3dGraphics.Graphics
                     //bool pointInsideTriangle = PointInTriangle(p, p1, p2, p3);
 
                     if (pointInsideTriangle)
-                    {
-                        //we also have to check if we're inside the screen
-                        bool pointInsideScreen = (0 <= x && x < _width && 0 <= y && y < _height);
+                    {                        
+                        //we interpolate the point Z using the plane equation (we use P2 and the norm (P1-P2 X P3-P2) to describe the triangle plane)
+                        //we then use the equation [(P1-P2 X P3-P2)]*(P-P2) = 0 to derive P.Z                           
+                        Vector3 p_p2 = p - p2;
 
-                        if (pointInsideScreen)
-                        {
+                        float interpolatedZ = -((p1_p2.Y * p3_p2.Z - p1_p2.Z * p3_p2.Y) * p_p2.X + (p1_p2.Z * p3_p2.X - p1_p2.X * p3_p2.Z) * p_p2.Y) / (p1_p2.X * p3_p2.Y - p1_p2.Y * p3_p2.X) + p2.Z;
+                        float invertedInterZ = 1 / interpolatedZ;
 
-                            //we interpolate the point Z using the plane equation (we use P2 and the norm (P1-P2 X P3-P2) to describe the triangle plane)
-                            //we then use the equation [(P1-P2 X P3-P2)]*(P-P2) = 0 to derive P.Z                           
-                            Vector3 p_p2 = p - p2;
+                        //float interpolatedZ = (p1.Z + p2.Z + p3.Z) / 3;   //simple implementation
 
-                            float interpolatedZ = -((p1_p2.Y * p3_p2.Z - p1_p2.Z * p3_p2.Y) * p_p2.X + (p1_p2.Z * p3_p2.X - p1_p2.X * p3_p2.Z) * p_p2.Y) / (p1_p2.X * p3_p2.Y - p1_p2.Y * p3_p2.X) + p2.Z;
-                            float invertedInterZ = 1 / interpolatedZ;
+                        //we calculate the pixel number
+                        int pixelNr = y * _width + x;
 
-                            //float interpolatedZ = (p1.Z + p2.Z + p3.Z) / 3;   //simple implementation
+                        lock (_pixelLocks[pixelNr])
+                        {    
+                            if (invertedInterZ > _zBuffer[pixelNr])       //we're now using the interpolated Z
+                            {
+                                _zBuffer[pixelNr] = invertedInterZ;
 
-                            //we calculate the pixel number
-                            int pixelNr = y * _width + x;
+                                int pixelStartingByte = pixelNr * Stride;
 
-                            lock (_pixelLocks[pixelNr])
-                            {    
-                                if (invertedInterZ > _zBuffer[pixelNr])       //we're now using the interpolated Z
-                                {
-                                    _zBuffer[pixelNr] = invertedInterZ;
-
-                                    int pixelStartingByte = pixelNr * Stride;
-
-                                    _data[pixelStartingByte] = fragmentColor.B;
-                                    _data[pixelStartingByte + 1] = fragmentColor.G;
-                                    _data[pixelStartingByte + 2] = fragmentColor.R;
-                                    //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
-                                }                           
-                            }
-                        }
+                                _data[pixelStartingByte] = fragmentColor.B;
+                                _data[pixelStartingByte + 1] = fragmentColor.G;
+                                _data[pixelStartingByte + 2] = fragmentColor.R;
+                                //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
+                            }                           
+                        }                        
                     }                                      
                 }
             }   
