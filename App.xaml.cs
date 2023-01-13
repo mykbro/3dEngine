@@ -86,8 +86,8 @@ namespace _3dGraphics
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(0f, 0f, 10f), 1f));
 
-            _world.Camera.MoveBy(new Vector3(0f, 3f, -6f));
-            //_world.Camera.RotateBy(new Vector3(0.45f, 0.75f, 0));
+            _world.Camera.MoveBy(new Vector3(-2.5f, 4f, -2.5f));
+            _world.Camera.RotateBy(new Vector3(0.45f, 0.75f, 0));
 
             /*
             //big distances test            
@@ -201,9 +201,12 @@ namespace _3dGraphics
         {            
             Vector4 v1 = vertices4D[tempTri.V1Index];
             Vector4 v2 = vertices4D[tempTri.V2Index];
-            Vector4 v3 = vertices4D[tempTri.V3Index];           
+            Vector4 v3 = vertices4D[tempTri.V3Index];
 
-            Fragment3D frag = new Fragment3D(new Vector3(v1.X, v1.Y, v1.Z), new Vector3(v2.X, v2.Y, v2.Z), new Vector3(v3.X, v3.Y, v3.Z), tempTri.Color);
+            int colorLevel = (int)(tempTri.LightIntensity * 255);
+            DrawingColor col = DrawingColor.FromArgb(colorLevel, colorLevel, colorLevel);
+
+            Fragment3D frag = new Fragment3D(new Vector3(v1.X, v1.Y, v1.Z), new Vector3(v2.X, v2.Y, v2.Z), new Vector3(v3.X, v3.Y, v3.Z), col);
 
             _renderTarget.RenderFragment(frag);
         }
@@ -245,10 +248,7 @@ namespace _3dGraphics
 
                 if (scalarProd > 0)
                 {
-                    int colorLevel = (int)(scalarProd * 255);
-                    DrawingColor color = DrawingColor.FromArgb(colorLevel, colorLevel, colorLevel);
-
-                    trianglesToClip.Add(new Triangle(tempTriangle.V1Index, tempTriangle.V2Index, tempTriangle.V3Index, color));    //we calculate the illumination                        
+                    trianglesToClip.Add(new Triangle(tempTriangle.V1Index, tempTriangle.V2Index, tempTriangle.V3Index, scalarProd));    //we calculate the illumination                        
                     verticesMask[tempTriangle.V1Index] = true;
                     verticesMask[tempTriangle.V2Index] = true;
                     verticesMask[tempTriangle.V3Index] = true;
@@ -355,7 +355,7 @@ namespace _3dGraphics
                                 int v1 = Int32.Parse(parts[1]);
                                 int v2 = Int32.Parse(parts[2]);
                                 int v3 = Int32.Parse(parts[3]);
-                                triangles.Add(new Triangle(v1 - 1, v2 - 1, v3 - 1, DrawingColor.Black));    //obj file indexes count from 1; we also initialize to MAX luminosity
+                                triangles.Add(new Triangle(v1 - 1, v2 - 1, v3 - 1, 1f));    //obj file indexes count from 1; we also initialize to MAX luminosity
                                 break;
                             default:
                                 break;
