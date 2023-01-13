@@ -49,7 +49,9 @@ namespace _3dGraphics.Graphics
             Vector3 p1_p2 = p1 - p2;
             Vector3 p3_p1 = p3 - p1;
 
+            
             //we project them on the Z=0 plane for the inside/outside check cross product
+            
             Vector3 projP2_P3 = ProjectTo2D(p2_p3);
             Vector3 projP1_P2 = ProjectTo2D(p1_p2);
             Vector3 projP3_P1 = ProjectTo2D(p3_p1);
@@ -57,7 +59,7 @@ namespace _3dGraphics.Graphics
             Vector3 projP1 = ProjectTo2D(p1);
             Vector3 projP2 = ProjectTo2D(p2);
             Vector3 projP3 = ProjectTo2D(p3);
-
+            
 
             for (int x = minX; x < maxX + 1; x++)   //x < maxX + 1 is equal to x <= maxX
             {
@@ -70,16 +72,27 @@ namespace _3dGraphics.Graphics
                     {
                         Vector3 p = PointToVector3(new Point(x, y));    //already projected on Z=0 plane
 
+                        
                         //we check if we're inside the triangle using cross products
+                        
                         Vector3 projP_P3 = p - projP3;
                         Vector3 projP_P2 = p - projP2;
                         Vector3 projP_P1 = p - projP1;
-
+                        
+                        /*
                         Vector3 a = Vector3.Cross(projP2_P3, projP_P3);
                         Vector3 b = Vector3.Cross(projP1_P2, projP_P2);
                         Vector3 c = Vector3.Cross(projP3_P1, projP_P1);
-
+                        
                         bool pointInsideTriangle = (a.Z <= 0 && b.Z <= 0 && c.Z <= 0);
+                        */
+
+                        bool pointInsideTriangle = (Vector3.Cross(projP2_P3, projP_P3).Z <= 0 &&    //early reject using && properties
+                                                    Vector3.Cross(projP1_P2, projP_P2).Z <= 0 &&
+                                                    Vector3.Cross(projP3_P1, projP_P1).Z <= 0);
+                        
+                        
+                        //bool pointInsideTriangle = PointInTriangle(p, p1, p2, p3);
 
                         if (pointInsideTriangle)
                         {
@@ -118,13 +131,26 @@ namespace _3dGraphics.Graphics
 
         }
         private static Vector3 PointToVector3(Point p)
-        {
-            return new Vector3((2 * p.X + 1) / 2, (2 * p.Y + 1) / 2, 0f);
+        {  
+            return new Vector3((2 * p.X + 1) / 2f, (2 * p.Y + 1) / 2f, 0f);
         }   
         
         private static Vector3 ProjectTo2D(Vector3 p)
         {
             return new Vector3(p.X, p.Y, 0f);
+        }
+
+        private static bool PointInTriangle(Vector3 p, Vector3 p0, Vector3 p1, Vector3 p2)
+        {            
+            //not much advantage using this over crossproduct with early reject
+            float s = (p0.X - p2.X) * (p.Y - p2.Y) - (p0.Y - p2.Y) * (p.X - p2.X);
+            float t = (p1.X - p0.X) * (p.Y - p0.Y) - (p1.Y - p0.Y) * (p.X - p0.X);
+
+            if ((s < 0) != (t < 0) && s != 0 && t != 0)
+                return false;
+
+            float d = (p2.X - p1.X) * (p.Y - p1.Y) - (p2.Y - p1.Y) * (p.X - p1.X);
+            return d == 0 || (d < 0) == (s + t <= 0);                       
         }
 
         public void Clear()
