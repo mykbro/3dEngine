@@ -77,9 +77,9 @@ namespace _3dGraphics
              
 
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt");
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");
+            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\suzanne.txt");
-            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\bunny.txt");
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\bunny.txt");
             
             _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
@@ -226,8 +226,7 @@ namespace _3dGraphics
                     _renderTarget.RenderFragment(frag);
                 }
                 */
-                Parallel.ForEach(trianglesToRender, (t) => RenderFragment(t, vertices4D));
-
+                Parallel.ForEach(trianglesToRender, (t) => RenderFragment(t, vertices4D));               
 
                 debugNumVerticesFromObjects += numVertices;
                 debugNumTrianglesFromObjects += numTriangles;
@@ -303,8 +302,7 @@ namespace _3dGraphics
         }
 
         private void RenderFragment(Triangle tempTri, List<Vector4> vertices4D)
-        {         
-           
+        {            
             Vector4 v1 = vertices4D[tempTri.V1Index];
             Vector4 v2 = vertices4D[tempTri.V2Index];
             Vector4 v3 = vertices4D[tempTri.V3Index];

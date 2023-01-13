@@ -67,7 +67,7 @@ namespace _3dGraphics.Graphics
             {
                 for(int y = minY; y <= maxY; y++)
                 {                      
-                    //Vector3 p = PointToVector3(new Point(x, y));    
+                    //Vector3 p = PointToVector3(new Point(x, y));   //too slow 
                     Vector3 p = new Vector3(x + 0.5f, y + 0.5f, 0f);
 
                         
@@ -83,22 +83,27 @@ namespace _3dGraphics.Graphics
                         
 
                     //bool pointInsideTriangle = PointInTriangle(p, p1, p2, p3);
-
                     if (pointInsideTriangle)
                     {                        
                         //we interpolate the point Z using the plane equation (we use P2 and the norm (P1-P2 X P3-P2) to describe the triangle plane)
                         //we then use the equation [(P1-P2 X P3-P2)]*(P-P2) = 0 to derive P.Z                           
                         Vector3 p_p2 = p - p2;
 
-                        float interpolatedZ = -((p1_p2.Y * p3_p2.Z - p1_p2.Z * p3_p2.Y) * p_p2.X + (p1_p2.Z * p3_p2.X - p1_p2.X * p3_p2.Z) * p_p2.Y) / (p1_p2.X * p3_p2.Y - p1_p2.Y * p3_p2.X) + p2.Z;
-                        float invertedInterZ = 1 / interpolatedZ;
-
-                        //float interpolatedZ = (p1.Z + p2.Z + p3.Z) / 3;   //simple implementation
+                        float a = (p1_p2.Y * p3_p2.Z - p1_p2.Z * p3_p2.Y);
+                        float b = (p1_p2.Z * p3_p2.X - p1_p2.X * p3_p2.Z);
+                        float c = (p1_p2.X * p3_p2.Y - p1_p2.Y * p3_p2.X);
+                        //float interpolatedZ = - (a * p_p2.X + b * p_p2.Y) / c + p2.Z;                        
+                        //float invertedInterZ = 1 / interpolatedZ;
+                        
+                        float invertedInterZ = - c / (a * p_p2.X + b * p_p2.Y - c * p2.Z);      //one more mult, but one less division
+                        
 
                         //we calculate the pixel number
                         int pixelNr = y * _width + x;
 
-                        lock (_pixelLocks[pixelNr])
+                        //lock is A LOT faster than .net Spinlock. Same speed as my AsyncStuff.Spinlock
+                        //Using this lock loses around 10fps but is necessary to avoid artifacts
+                        lock (_pixelLocks[pixelNr])      
                         {    
                             if (invertedInterZ > _zBuffer[pixelNr])       //we're now using the interpolated Z
                             {
