@@ -12,6 +12,7 @@ namespace _3dGraphics.Graphics
     {
         private readonly byte[] _data;        
         private readonly float[] _zBuffer;
+        private readonly Object[] _pixelLocks;
         private readonly int _width;
         private readonly int _height;
 
@@ -25,7 +26,10 @@ namespace _3dGraphics.Graphics
             _width = width;
             _height = height;
             _data = new byte[width * height * Stride];
-            _zBuffer = new float[width * height];            
+            _zBuffer = new float[width * height];
+            _pixelLocks = new Object[width * height];
+
+            InitPixelLocks();
         }
 
         public void RenderFragment(Fragment3D fragment)
@@ -90,19 +94,22 @@ namespace _3dGraphics.Graphics
                             //float interpolatedZ = (p1.Z + p2.Z + p3.Z) / 3;   //simple implementation
                             
                             //we calculate the pixel number
-                            int pixelNr = y * Width + x; 
-                            
-                            if(interpolatedZ < _zBuffer[pixelNr])       //we're now using the interpolated Z
+                            int pixelNr = y * Width + x;
+
+                            lock (_pixelLocks[pixelNr])
                             {
-                                _zBuffer[pixelNr] = interpolatedZ;
+                                if (interpolatedZ < _zBuffer[pixelNr])       //we're now using the interpolated Z
+                                {
+                                    _zBuffer[pixelNr] = interpolatedZ;
 
-                                int pixelStartingByte = pixelNr * Stride;
+                                    int pixelStartingByte = pixelNr * Stride;
 
-                                _data[pixelStartingByte] = fragment.Color.B;
-                                _data[pixelStartingByte + 1] = fragment.Color.G;
-                                _data[pixelStartingByte + 2] = fragment.Color.R;
-                                //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
-                            }
+                                    _data[pixelStartingByte] = fragment.Color.B;
+                                    _data[pixelStartingByte + 1] = fragment.Color.G;
+                                    _data[pixelStartingByte + 2] = fragment.Color.R;
+                                    //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
+                                }
+                            }                            
                         }
                     }                   
                 }
@@ -137,6 +144,14 @@ namespace _3dGraphics.Graphics
             for (int i = 0; i < _zBuffer.Length; i++)
             {
                 _zBuffer[i] = float.PositiveInfinity;
+            }
+        }
+
+        private void InitPixelLocks()
+        {
+            for(int i=0; i< _pixelLocks.Length; i++) 
+            {
+                _pixelLocks[i] = new Object();
             }
         }
        

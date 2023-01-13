@@ -148,7 +148,7 @@ namespace _3dGraphics
                 for (int tIndex = 0; tIndex < numTriangles; tIndex++)
                 {
                     Triangle tempTriangle = mesh.GetTriangle(tIndex);
-                    Vector3 triangleBarycenter = (mesh.GetVertex(tempTriangle.V1Index).Position3D + mesh.GetVertex(tempTriangle.V2Index).Position3D + mesh.GetVertex(tempTriangle.V3Index).Position3D) / 3f;
+                    Vector3 triangleBarycenter = (mesh.GetVertex(tempTriangle.V1Index).Position3D + mesh.GetVertex(tempTriangle.V2Index).Position3D + mesh.GetVertex(tempTriangle.V3Index).Position3D) / 3f;                   
                     Vector3 pointToCameraVec = cameraPosInObjSpace - triangleBarycenter;
                     Vector3 pointToCameraVecNormalized = Vector3.Normalize(pointToCameraVec);
                     float scalarProd = Vector3.Dot(pointToCameraVecNormalized, mesh.GetNormal(tIndex));
@@ -208,16 +208,11 @@ namespace _3dGraphics
                 }
 
                 //creating the fragments to display
+                /*
                 for (int tIndex = 0; tIndex < trianglesToRender.Count; tIndex++)
                 {
                     Triangle tempTri = trianglesToRender[tIndex];
-                    /*
-                    PointF p1 = new PointF(vertices4D[tempTri.V1Index].X, vertices4D[tempTri.V1Index].Y);
-                    PointF p2 = new PointF(vertices4D[tempTri.V2Index].X, vertices4D[tempTri.V2Index].Y);
-                    PointF p3 = new PointF(vertices4D[tempTri.V3Index].X, vertices4D[tempTri.V3Index].Y);
-
-                    fragments.Add(new Fragment(p1, p2, p3, tempTri.LightIntensity));
-                    */
+                    
                     Vector4 v1 = vertices4D[tempTri.V1Index];
                     Vector4 v2 = vertices4D[tempTri.V2Index];
                     Vector4 v3 = vertices4D[tempTri.V3Index];
@@ -229,6 +224,9 @@ namespace _3dGraphics
 
                     _renderTarget.RenderFragment(frag);
                 }
+                */
+                Parallel.ForEach(trianglesToRender, (t) => RenderFragment(t, vertices4D));
+
 
                 debugNumVerticesFromObjects += numVertices;
                 debugNumTrianglesFromObjects += numTriangles;
@@ -301,6 +299,21 @@ namespace _3dGraphics
 
                 lastCycleTimeInSecs = timeInSecs;
             }
+        }
+
+        private void RenderFragment(Triangle tempTri, List<Vector4> vertices4D)
+        {         
+           
+            Vector4 v1 = vertices4D[tempTri.V1Index];
+            Vector4 v2 = vertices4D[tempTri.V2Index];
+            Vector4 v3 = vertices4D[tempTri.V3Index];
+
+            int colorLevel = (int)(tempTri.LightIntensity * 255);
+            DrawingColor col = DrawingColor.FromArgb(colorLevel, colorLevel, colorLevel);
+
+            Fragment3D frag = new Fragment3D(new Vector3(v1.X, v1.Y, v1.Z), new Vector3(v2.X, v2.Y, v2.Z), new Vector3(v3.X, v3.Y, v3.Z), col);
+
+            _renderTarget.RenderFragment(frag);
         }
         
 
