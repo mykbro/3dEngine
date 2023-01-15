@@ -77,16 +77,18 @@ namespace _3dGraphics.Graphics
                 {
                     Vector3 p = new Vector3(x + 0.5f, yAndHalf, 0f);
 
-                    //we check if we're inside the triangle using cross products                        
-                    Vector3 projP_P3 = p - projP3;
-                    Vector3 projP_P2 = p - projP2;
+                    //we check if we're inside the triangle
+                    //bool pointInsideTriangle = IsPointInTriangleCrossProduct(p, projP1, projP2, projP3, projP1_P2, projP2_P3, projP3_P1);
+                    //bool pointInsideTriangle = IsPointInTriangleBarycentric(p, projP1, projP2, projP3, projP1_P2, projP2_P3, projP3_P1);
                     Vector3 projP_P1 = p - projP1;
-
-
-                    bool pointInsideTriangle = (Vector3.Cross(projP2_P3, projP_P3).Z <= 0 &&    //early reject using && properties
-                                                Vector3.Cross(projP1_P2, projP_P2).Z <= 0 &&
-                                                Vector3.Cross(projP3_P1, projP_P1).Z <= 0);
-
+                    Vector3 projP_P2 = p - projP2;
+                    Vector3 projP_P3 = p - projP3;
+                    
+                    //we inline the crossproduct check calculating only the Z term and early rejecting thanks to the && property
+                    bool pointInsideTriangle =  (projP_P1.X * projP3_P1.Y - projP_P1.Y * projP3_P1.X) >= 0 &&
+                                                (projP_P2.X * projP1_P2.Y - projP_P2.Y * projP1_P2.X) >= 0 &&
+                                                (projP_P3.X * projP2_P3.Y - projP_P3.Y * projP2_P3.X) >= 0;
+                   
                     if (pointInsideTriangle)
                     {
                         startingX = x;
@@ -100,16 +102,18 @@ namespace _3dGraphics.Graphics
                     {
                         Vector3 p = new Vector3(x + 0.5f, yAndHalf, 0f);
 
-                        //we check if we're inside the triangle using cross products                        
-                        Vector3 projP_P3 = p - projP3;
-                        Vector3 projP_P2 = p - projP2;
+                        //we check if we're inside the triangle
+                        //bool pointInsideTriangle = IsPointInTriangleCrossProduct(p, projP1, projP2, projP3, projP1_P2, projP2_P3, projP3_P1);
+                        //bool pointInsideTriangle = IsPointInTriangleBarycentric(p, projP1, projP2, projP3, projP1_P2, projP2_P3, projP3_P1);                        
                         Vector3 projP_P1 = p - projP1;
+                        Vector3 projP_P2 = p - projP2;
+                        Vector3 projP_P3 = p - projP3;
 
-
-                        bool pointInsideTriangle = (Vector3.Cross(projP2_P3, projP_P3).Z <= 0 &&    //early reject using && properties
-                                                    Vector3.Cross(projP1_P2, projP_P2).Z <= 0 &&
-                                                    Vector3.Cross(projP3_P1, projP_P1).Z <= 0);
-
+                        //we inline the crossproduct check calculating only the Z term and early rejecting thanks to the && property                        
+                        bool pointInsideTriangle = (projP_P1.X * projP3_P1.Y - projP_P1.Y * projP3_P1.X) >= 0 &&
+                                                    (projP_P2.X * projP1_P2.Y - projP_P2.Y * projP1_P2.X) >= 0 &&
+                                                    (projP_P3.X * projP2_P3.Y - projP_P3.Y * projP2_P3.X) >= 0;
+                        
                         if (pointInsideTriangle)
                         {
                             endingX = x;
@@ -134,7 +138,6 @@ namespace _3dGraphics.Graphics
                     //float invertedInterZ = 1 / interpolatedZ;
 
                     float invertedInterZ = -c / (a * p_p2.X + b * p_p2.Y - c * p2.Z);      //one more mult, but one less division
-
 
                     //we calculate the pixel number
                     int pixelNr = y * _width + x;
@@ -549,17 +552,32 @@ namespace _3dGraphics.Graphics
             return new Vector3(p.X, p.Y, 0f);
         }
 
-        private static bool PointInTriangle(Vector3 p, Vector3 p0, Vector3 p1, Vector3 p2)
-        {            
-            //not much advantage using this over crossproduct with early reject
-            float s = (p0.X - p2.X) * (p.Y - p2.Y) - (p0.Y - p2.Y) * (p.X - p2.X);
-            float t = (p1.X - p0.X) * (p.Y - p0.Y) - (p1.Y - p0.Y) * (p.X - p0.X);
+        private static bool IsPointInTriangleBarycentric(Vector3 p, Vector3 p1, Vector3 p2, Vector3 p3, Vector3 p1_p2, Vector3 p2_p3, Vector3 p3_p1)
+        {
+            Vector3 p_p3 = p - p3;
+            Vector3 p_p2 = p - p2;
+            Vector3 p_p1 = p - p1;
+
+            float s = p3_p1.X * p_p1.Y - p3_p1.Y * p_p1.X;
+            float t = p1_p2.X * p_p2.Y - p1_p2.Y * p_p2.X;
 
             if ((s < 0) != (t < 0) && s != 0 && t != 0)
                 return false;
 
-            float d = (p2.X - p1.X) * (p.Y - p1.Y) - (p2.Y - p1.Y) * (p.X - p1.X);
+            float d = p2_p3.X * p_p3.Y - p2_p3.Y * p_p3.X;
             return d == 0 || (d < 0) == (s + t <= 0);                       
+        }
+
+        private static bool IsPointInTriangleCrossProduct(Vector3 p, Vector3 p1, Vector3 p2, Vector3 p3, Vector3 p1_p2, Vector3 p2_p3, Vector3 p3_p1)
+        {
+            Vector3 p_p3 = p - p3;
+            Vector3 p_p2 = p - p2;
+            Vector3 p_p1 = p - p1;
+
+
+            return  Vector3.Cross(p2_p3, p_p3).Z <= 0 &&    //early reject using && properties
+                    Vector3.Cross(p1_p2, p_p2).Z <= 0 &&
+                    Vector3.Cross(p3_p1, p_p1).Z <= 0;
         }
 
         public void Clear()

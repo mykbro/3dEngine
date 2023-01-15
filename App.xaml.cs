@@ -68,7 +68,7 @@ namespace _3dGraphics
             
             float FOV = 90f;
             float zNear = 0.05f;
-            float zFar = 100f;
+            float zFar = 50f;
             float speedKmh = 6f;
             float rotSpeedDegSec = 60f;
             float fovIncSpeedDegSec = 30f;
@@ -77,14 +77,15 @@ namespace _3dGraphics
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
 
             //Generate100Cubes();            
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt"); 
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\bunny.txt"); 
 
-            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));           
+            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(0f, 0f, 10f), 1f));
 
             _world.Camera.MoveBy(new Vector3(0f, 3f, -6f));
+            //_world.Camera.MoveBy(new Vector3(0.5f, 3f, 0.5f));
             //_world.Camera.RotateBy(new Vector3(1.5f, 4f, 0));
 
             /*
@@ -103,11 +104,11 @@ namespace _3dGraphics
         {
             Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");
 
-            for(int i=0; i<3; i++)
+            for(int i=0; i<5; i++)
             {
-                for(int j=0; j<3; j++)
+                for(int j=0; j<5; j++)
                 {
-                    _world.Objects.Add(new WorldObject(objToLoad, new Vector3(i*10, 0, j*10), 1f));
+                    _world.Objects.Add(new WorldObject(objToLoad, new Vector3(i*5, 0, j*5), 0.5f));
                 }
             }
         }
