@@ -70,8 +70,8 @@ namespace _3dGraphics.Graphics
 
                 bool startingXFound = false;
                 bool endingXFound = false;
-                int startingX = maxX;   //initialize to Max so that if we do not found any X startingX will be > than endingX and we won't draw anything
-                int endingX = minX;     //see above
+                int startingX = maxX + 1;   //initialize over Max so that if we do not found any X startingX will be > than endingX and we won't draw anything
+                int endingX = minX - 1;     //see above
 
                 for (int x = minX; x <= maxX && !startingXFound; x++)
                 {
@@ -122,8 +122,8 @@ namespace _3dGraphics.Graphics
                     }
                 }
 
-                //we finally draw from startingX to endingX
-                for(int x = startingX; x <= endingX; x++)
+                //we finally draw from startingX to endingX               
+                for (int x = startingX; x <= endingX; x++)
                 {
                     //we interpolate the point Z using the plane equation (we use P2 and the norm (P1-P2 X P3-P2) to describe the triangle plane)
                     //we then use the equation [(P1-P2 X P3-P2)]*(P-P2) = 0 to derive P.Z                           
@@ -158,7 +158,7 @@ namespace _3dGraphics.Graphics
                             //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
                         }
                     }
-                }              
+                }                                    
             }
         }
 
