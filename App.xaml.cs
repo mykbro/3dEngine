@@ -19,6 +19,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Reflection;
 using System.IO;
+using System.Globalization;
 using PointF = System.Drawing.PointF;
 using DrawingColor = System.Drawing.Color;
 
@@ -67,7 +68,7 @@ namespace _3dGraphics
             
             float FOV = 90f;
             float zNear = 0.05f;
-            float zFar = 50f;
+            float zFar = 100f;
             float speedKmh = 6f;
             float rotSpeedDegSec = 60f;
             float fovIncSpeedDegSec = 30f;
@@ -75,19 +76,16 @@ namespace _3dGraphics
             //we create the world and populate it with objects
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
 
-            //Generate100Cubes();
-            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt");
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");
-            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\suzanne.txt");
-            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\bunny.txt");
+            //Generate100Cubes();            
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");            
 
             _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(0f, 0f, 10f), 1f));
 
-            _world.Camera.MoveBy(new Vector3(-2.5f, 4f, -2.5f));
-            _world.Camera.RotateBy(new Vector3(0.45f, 0.75f, 0));
+            _world.Camera.MoveBy(new Vector3(0f, 3f, -6f));
+            //_world.Camera.RotateBy(new Vector3(0.45f, 0.75f, 0));
 
             /*
             //big distances test            
@@ -208,7 +206,8 @@ namespace _3dGraphics
 
             Fragment3D frag = new Fragment3D(new Vector3(v1.X, v1.Y, v1.Z), new Vector3(v2.X, v2.Y, v2.Z), new Vector3(v3.X, v3.Y, v3.Z), col);
 
-            _renderTarget.RenderFragment(frag);
+            //_renderTarget.RenderFragment(frag);
+            _renderTarget.RenderFragmentUsingScanLine(frag);
         }
 
         private void RenderObject(WorldObject wObject, Matrix4x4 worldToProj, Matrix4x4 viewportMatrix, DebugInfo debugInfo) 
@@ -346,15 +345,15 @@ namespace _3dGraphics
                         switch (parts[0])
                         {
                             case "v":
-                                float x = float.Parse(parts[1]);
-                                float y = float.Parse(parts[2]);
-                                float z = float.Parse(parts[3]);
+                                float x = float.Parse(parts[1], CultureInfo.InvariantCulture);
+                                float y = float.Parse(parts[2], CultureInfo.InvariantCulture);
+                                float z = float.Parse(parts[3], CultureInfo.InvariantCulture);
                                 vertices.Add(new Vertex(new Vector3(x, y, z)));
                                 break;
                             case "f":
-                                int v1 = Int32.Parse(parts[1]);
-                                int v2 = Int32.Parse(parts[2]);
-                                int v3 = Int32.Parse(parts[3]);
+                                int v1 = Int32.Parse(parts[1].Split('/')[0]);
+                                int v2 = Int32.Parse(parts[2].Split('/')[0]);
+                                int v3 = Int32.Parse(parts[3].Split('/')[0]);
                                 triangles.Add(new Triangle(v1 - 1, v2 - 1, v3 - 1, 1f));    //obj file indexes count from 1; we also initialize to MAX luminosity
                                 break;
                             default:

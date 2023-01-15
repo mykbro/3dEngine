@@ -69,8 +69,8 @@ namespace _3dGraphics.Graphics
         {
             get
             {
-                float halfWidth = _width/ 2;
-                float halfHeight = _height / 2;
+                float halfWidth = (_width - 1) / 2;
+                float halfHeight = (_height - 1) / 2;
                 Matrix4x4 temp = Matrix4x4.Identity;   
                 temp.M11 = halfWidth;
                 temp.M41 = halfWidth;
