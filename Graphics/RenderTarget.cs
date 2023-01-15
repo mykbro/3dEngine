@@ -191,8 +191,7 @@ namespace _3dGraphics.Graphics
                             //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
                         }
                     }
-                } 
-                
+                }                 
             }
             else if (middlePointInt.Y == lowestPointInt.Y)
             {
@@ -213,6 +212,12 @@ namespace _3dGraphics.Graphics
                 {
                     float yAndHalf = y + 0.5f;
 
+                    if(y == lowestY)
+                    {
+                        fromX = lowestX;
+                        toX = highestX;
+                    }
+                    
                     for (int x = (int) fromX; x <= (int) toX; x++)
                     {
                         Vector3 p = new Vector3(x + 0.5f, yAndHalf, 0f);
@@ -256,21 +261,27 @@ namespace _3dGraphics.Graphics
             else if (highestPointInt.Y == middlePointInt.Y)
             {
                 //we draw a top triangle 
-                int highestY = highestPointInt.Y;
+                int highestY = middlePointInt.Y;
                 int lowestY = lowestPointInt.Y;
 
                 float lowestX = Math.Min(highestPoint.X, middlePoint.X);
                 float highestX = Math.Max(highestPoint.X, middlePoint.X);
 
-                float fromMinDX = (lowestX - lowestPoint.X) / (highestPoint.Y - lowestPoint.Y);
+                float fromMinDX = (lowestX - lowestPoint.X) / (middlePoint.Y - lowestPoint.Y);
                 float fromMaxDX = (highestX - lowestPoint.X) / (middlePoint.Y - lowestPoint.Y);
 
                 float fromX = lowestX;
                 float toX = highestX;
 
-                for (int y = highestY, i = 1; y <= lowestY; y++, i++)
+                for (int y = highestY; y <= lowestY; y++)
                 {
                     float yAndHalf = y + 0.5f;
+
+                    if (y == lowestY)
+                    {
+                        fromX = lowestPoint.X;
+                        toX = lowestPoint.X;
+                    }
 
                     for (int x = (int) fromX; x <= (int) toX; x++)
                     {
@@ -308,30 +319,40 @@ namespace _3dGraphics.Graphics
                     }
 
                     fromX += fromMinDX;
-                    toX += fromMaxDX;
+                    toX += fromMaxDX;                  
                 }
             }
             else
             {
-                /*
-                //we draw both top and bottom triangle
-                float dXHighLow = (highestPoint.X - lowestPoint.X) / (highestPoint.Y - lowestPoint.Y);
-                float dxHighMid = (highestPoint.X - middlePointInt.X) / (highestPoint.Y - middlePointInt.Y);
-
-                float highestDX = Math.Max(dXHighLow, dxHighMid);
-                float lowestDX = Math.Min(dXHighLow, dxHighMid);
+                //we draw both a bottom (minus one row) and a top triangle                   
+                float toLowDX = (highestPoint.X - lowestPoint.X) / (highestPoint.Y - lowestPoint.Y);
+                float oppositeMiddleX = highestPoint.X + toLowDX * (middlePoint.Y - highestPoint.Y);
 
                 int highestY = highestPointInt.Y;
-                int lowestY = middlePointInt.Y;      //we use middlePoint here
+                int lowestY = middlePointInt.Y;
 
-                int fromX = highestPointInt.X;
-                int toX = highestPointInt.X;
+                float lowestX = Math.Min(middlePoint.X, oppositeMiddleX);
+                float highestX = Math.Max(middlePoint.X, oppositeMiddleX);
 
-                for (int y = highestY, i = 1; y <= lowestY; y++, i++)
+                float toMinDX = (highestPoint.X - lowestX) / (highestPoint.Y - middlePoint.Y);     
+                float toMaxDX = (highestPoint.X - highestX) / (highestPoint.Y - middlePoint.Y);
+
+                float fromX = highestPointInt.X;
+                float toX = highestPointInt.X;
+
+                for (int y = highestY; y < lowestY; y++)        //we skip the last row
                 {
                     float yAndHalf = y + 0.5f;
 
-                    for (int x = fromX; x <= toX; x++)
+                    /* no need for this as we skip the last row
+                    if (y == lowestY)
+                    {
+                        fromX = lowestX;
+                        toX = highestX;
+                    }
+                    */
+
+                    for (int x = (int)fromX; x <= (int)toX; x++)
                     {
                         Vector3 p = new Vector3(x + 0.5f, yAndHalf, 0f);
 
@@ -366,32 +387,35 @@ namespace _3dGraphics.Graphics
                         }
                     }
 
-                    fromX = (int)(highestPoint.X + lowestDX * i);
-                    toX = (int)(highestPoint.X + highestDX * i);
+                    fromX += toMinDX;
+                    toX += toMaxDX;
                 }
-                /// BOTTOM END
-                float dXMidLow = (middlePointInt.X - lowestPoint.X) / (middlePointInt.Y - lowestPoint.Y);
 
-                //we calculate the X of the opposite point at the same height of Mid
-                float oppositeMidX = highestPoint.X + dXHighLow * (middlePointInt.Y - highestPoint.Y);      //we must go down the high-low side
+                //we switch to a top triangle
 
-                highestDX = Math.Max(dXHighLow, dXMidLow);
-                lowestDX = Math.Min(dXHighLow, dXMidLow);
+                highestY = middlePointInt.Y;
+                lowestY = lowestPointInt.Y;
 
-                highestY = middlePointInt.Y + 1; //we already scanned the middlePoint row
-                lowestY = lowestPointInt.Y;      
+                lowestX = Math.Min(middlePoint.X, oppositeMiddleX);
+                highestX = Math.Max(middlePoint.X, oppositeMiddleX);
 
-                float lowestX = Math.Min(middlePoint.X, oppositeMidX);
-                float highestX = Math.Max(middlePoint.X, oppositeMidX);
+                float fromMinDX = (lowestX - lowestPoint.X) / (middlePoint.Y - lowestPoint.Y);
+                float fromMaxDX = (highestX - lowestPoint.X) / (middlePoint.Y - lowestPoint.Y);
 
-                fromX = (int)(lowestX + highestDX);     //we apply the DXs because we're starting from the second row skipping the first
-                toX = (int)(highestX + lowestDX);
+                fromX = lowestX;
+                toX = highestX;
 
-                for (int y = highestY, i = 1; y <= lowestY; y++, i++)
+                for (int y = highestY; y <= lowestY; y++)
                 {
                     float yAndHalf = y + 0.5f;
 
-                    for (int x = fromX; x <= toX; x++)
+                    if (y == lowestY)
+                    {
+                        fromX = lowestPoint.X;
+                        toX = lowestPoint.X;
+                    }
+
+                    for (int x = (int)fromX; x <= (int)toX; x++)
                     {
                         Vector3 p = new Vector3(x + 0.5f, yAndHalf, 0f);
 
@@ -426,11 +450,16 @@ namespace _3dGraphics.Graphics
                         }
                     }
 
-                    fromX = (int)(lowestX + highestDX * i);
-                    toX = (int)(highestX + lowestDX * i);
+                    fromX += fromMinDX;
+                    toX += fromMaxDX;
                 }
-                */
+
             }
+
+            
+
+
+
         }
 
         private int HighestYPoint(Point[] points)
