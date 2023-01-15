@@ -77,9 +77,9 @@ namespace _3dGraphics
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
 
             //Generate100Cubes();            
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");            
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt"); 
 
-            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
+            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));           
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(0f, 0f, 10f), 1f));
@@ -193,7 +193,7 @@ namespace _3dGraphics
 
                 lastCycleTimeInSecs = timeInSecs;
             }
-        }
+        }       
 
         private void RenderObject(WorldObject wObject, Matrix4x4 worldToProj, Matrix4x4 viewportMatrix, DebugInfo debugInfo) 
         {            
@@ -325,8 +325,9 @@ namespace _3dGraphics
             Fragment3D frag = new Fragment3D(new Vector3(v1.X, v1.Y, v1.Z), new Vector3(v2.X, v2.Y, v2.Z), new Vector3(v3.X, v3.Y, v3.Z), col);
 
             //_renderTarget.RenderFragment(frag);
-            _renderTarget.RenderFragmentUsingScanLine(frag);
+            _renderTarget.RenderFragment(frag);
         }
+
 
         private static Mesh LoadMeshFromObjFile(string filename)
         {

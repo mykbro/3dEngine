@@ -68,14 +68,14 @@ namespace _3dGraphics.Graphics
             {
                 float yAndHalf = y + 0.5f;  //cache result
 
-                bool xFound = false;               
-                int foundX = 0;
-                int direction = 0;      //used in the drawing cycle in order to decrease/increase the index
+                bool startingXFound = false;
+                bool endingXFound = false;
+                int startingX = maxX;   //initialize to Max so that if we do not found any X startingX will be > than endingX and we won't draw anything
+                int endingX = minX;     //see above
 
-                //we start searching for an inside node both from the start and the end of the line until we found one or until we pass the middle point
-                for (int incX = minX, decX = maxX; incX <= decX && !xFound; incX++, decX--)
+                for (int x = minX; x <= maxX && !startingXFound; x++)
                 {
-                    Vector3 p = new Vector3(incX + 0.5f, yAndHalf, 0f);                    
+                    Vector3 p = new Vector3(x + 0.5f, yAndHalf, 0f);
 
                     //we check if we're inside the triangle using cross products                        
                     Vector3 projP_P3 = p - projP3;
@@ -89,38 +89,14 @@ namespace _3dGraphics.Graphics
 
                     if (pointInsideTriangle)
                     {
-                        foundX = incX;
-                        xFound = true;
-                        direction = 1;
-                    }
-                    else        //we try with the decreasing loop
-                    {
-                        p = new Vector3(decX + 0.5f, yAndHalf, 0f);     //decX instead of incX
-                        //we check if we're inside the triangle using cross products                        
-                        projP_P3 = p - projP3;
-                        projP_P2 = p - projP2;
-                        projP_P1 = p - projP1;
-
-
-                        pointInsideTriangle = (Vector3.Cross(projP2_P3, projP_P3).Z <= 0 &&    //early reject using && properties
-                                                Vector3.Cross(projP1_P2, projP_P2).Z <= 0 &&
-                                                Vector3.Cross(projP3_P1, projP_P1).Z <= 0);
-
-                        if (pointInsideTriangle)
-                        {
-                            foundX = decX;
-                            xFound = true;
-                            direction = -1;
-                        }
+                        startingX = x;
+                        startingXFound = true;
                     }
                 }
 
-                if(xFound)      //we skip the search for endingX if we already scanned the line and did not find any x
+                if(startingXFound)      //we skip the search for endingX if we already scanned the line and did not find any startingX
                 {
-                    bool outsideFound = false;
-                    
-                    //we draw by increasing or decreasing x until we found an outside node
-                    for (int x = foundX; minX <= foundX && foundX <= maxX && !outsideFound; x += direction)     //we draw until an outside point is found 
+                    for (int x = maxX; x >= minX && !endingXFound; x--)     //decreasing loop
                     {
                         Vector3 p = new Vector3(x + 0.5f, yAndHalf, 0f);
 
@@ -136,45 +112,50 @@ namespace _3dGraphics.Graphics
 
                         if (pointInsideTriangle)
                         {
-                            //we interpolate the point Z using the plane equation (we use P2 and the norm (P1-P2 X P3-P2) to describe the triangle plane)
-                            //we then use the equation [(P1-P2 X P3-P2)]*(P-P2) = 0 to derive P.Z
-                            Vector3 p_p2 = p - p2;
-
-                            float a = (p1_p2.Y * p3_p2.Z - p1_p2.Z * p3_p2.Y);
-                            float b = (p1_p2.Z * p3_p2.X - p1_p2.X * p3_p2.Z);
-                            float c = (p1_p2.X * p3_p2.Y - p1_p2.Y * p3_p2.X);
-                            //float interpolatedZ = - (a * p_p2.X + b * p_p2.Y) / c + p2.Z;                        
-                            //float invertedInterZ = 1 / interpolatedZ;
-
-                            float invertedInterZ = -c / (a * p_p2.X + b * p_p2.Y - c * p2.Z);      //one more mult, but one less division
-
-
-                            //we calculate the pixel number
-                            int pixelNr = y * _width + x;
-
-                            //lock is A LOT faster than .net Spinlock. Same speed as my AsyncStuff.Spinlock
-                            //Using this lock loses around 10fps but is necessary to avoid artifacts
-                            lock (_pixelLocks[pixelNr])
-                            {
-                                if (invertedInterZ > _zBuffer[pixelNr])       //we're now using the interpolated Z
-                                {
-                                    _zBuffer[pixelNr] = invertedInterZ;
-
-                                    int pixelStartingByte = pixelNr * Stride;
-
-                                    _data[pixelStartingByte] = fragmentColor.B;
-                                    _data[pixelStartingByte + 1] = fragmentColor.G;
-                                    _data[pixelStartingByte + 2] = fragmentColor.R;
-                                    //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
-                                }
-                            }
-                        }
-                        else
-                        {
-                            outsideFound = true;
+                            endingX = x;
+                            endingXFound = true;
                         }
                     }
-                }                 
+                }
+
+                //we finally draw from startingX to endingX
+                for(int x = startingX; x <= endingX; x++)
+                {
+                    //we interpolate the point Z using the plane equation (we use P2 and the norm (P1-P2 X P3-P2) to describe the triangle plane)
+                    //we then use the equation [(P1-P2 X P3-P2)]*(P-P2) = 0 to derive P.Z                           
+                    Vector3 p = new Vector3(x + 0.5f, yAndHalf, 0f);
+
+                    Vector3 p_p2 = p - p2;
+
+                    float a = (p1_p2.Y * p3_p2.Z - p1_p2.Z * p3_p2.Y);
+                    float b = (p1_p2.Z * p3_p2.X - p1_p2.X * p3_p2.Z);
+                    float c = (p1_p2.X * p3_p2.Y - p1_p2.Y * p3_p2.X);
+                    //float interpolatedZ = - (a * p_p2.X + b * p_p2.Y) / c + p2.Z;                        
+                    //float invertedInterZ = 1 / interpolatedZ;
+
+                    float invertedInterZ = -c / (a * p_p2.X + b * p_p2.Y - c * p2.Z);      //one more mult, but one less division
+
+
+                    //we calculate the pixel number
+                    int pixelNr = y * _width + x;
+
+                    //lock is A LOT faster than .net Spinlock. Same speed as my AsyncStuff.Spinlock
+                    //Using this lock loses around 10fps but is necessary to avoid artifacts
+                    lock (_pixelLocks[pixelNr])
+                    {
+                        if (invertedInterZ > _zBuffer[pixelNr])       //we're now using the interpolated Z
+                        {
+                            _zBuffer[pixelNr] = invertedInterZ;
+
+                            int pixelStartingByte = pixelNr * Stride;
+
+                            _data[pixelStartingByte] = fragmentColor.B;
+                            _data[pixelStartingByte + 1] = fragmentColor.G;
+                            _data[pixelStartingByte + 2] = fragmentColor.R;
+                            //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
+                        }
+                    }
+                }              
             }
         }
 
@@ -377,7 +358,7 @@ namespace _3dGraphics.Graphics
             }
             else
             {
-                //we draw both a bottom and a top triangle                   
+                //we draw both a bottom (minus one row) and a top triangle                   
                 float toLowDX = (highestPoint.X - lowestPoint.X) / (highestPoint.Y - lowestPoint.Y);
                 float oppositeMiddleX = highestPoint.X + toLowDX * (middlePoint.Y - highestPoint.Y);
 
@@ -393,15 +374,17 @@ namespace _3dGraphics.Graphics
                 float fromX = highestPointInt.X;
                 float toX = highestPointInt.X;
 
-                for (int y = highestY; y <= lowestY; y++)        
+                for (int y = highestY; y < lowestY; y++)        //we skip the last row
                 {
                     float yAndHalf = y + 0.5f;
-                    
+
+                    /* no need for this as we skip the last row
                     if (y == lowestY)
                     {
                         fromX = lowestX;
                         toX = highestX;
-                    }                    
+                    }
+                    */
 
                     for (int x = (int)fromX; x <= (int)toX; x++)
                     {
