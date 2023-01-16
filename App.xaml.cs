@@ -274,7 +274,7 @@ namespace _3dGraphics
             //triangle clipping
             for (int tIndex = 0; tIndex < trianglesToClip.Count; tIndex++)
             {
-                List<Triangle> clipResults = Clipper.ClipTriangleAndAppendNewVerticesAndTriangles(trianglesToClip[tIndex], vertices4D, verticesMask);
+                List<Triangle> clipResults = Clipper.ClipTriangleAndAppendNewVerticesAndTriangles(trianglesToClip[tIndex], vertices4D, verticesMask, texels);
                 trianglesToRender.AddRange(clipResults);
             }
 

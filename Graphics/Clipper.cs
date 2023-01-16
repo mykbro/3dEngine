@@ -13,7 +13,7 @@ namespace _3dGraphics.Graphics
         private enum PlaneId { Near=0, Left=1, Far=2, Right=3, Top=4, Bottom=5 };
         private const int NumPlanes = 6;
 
-        public static List<Triangle> ClipTriangleAndAppendNewVerticesAndTriangles(Triangle triangle, List<Vector4> vertices, List<bool> verticesMask)
+        public static List<Triangle> ClipTriangleAndAppendNewVerticesAndTriangles(Triangle triangle, List<Vector4> vertices, List<bool> verticesMask, List<Vector2> texels)
         {
             
             
@@ -42,7 +42,7 @@ namespace _3dGraphics.Graphics
 
                     foreach (Triangle t in inputList)
                     {
-                        resultList.AddRange(ClipTriangleToPlane(t, (PlaneId)i, vertices, verticesMask));
+                        resultList.AddRange(ClipTriangleToPlane(t, (PlaneId)i, vertices, verticesMask, texels));
                     }
 
                     inputList = resultList;
@@ -57,13 +57,17 @@ namespace _3dGraphics.Graphics
             return inputList;
         }
 
-        private static List<Triangle> ClipTriangleToPlane(Triangle triangle, PlaneId planeId, List<Vector4> vertices, List<bool> verticesMask)
+        private static List<Triangle> ClipTriangleToPlane(Triangle triangle, PlaneId planeId, List<Vector4> vertices, List<bool> verticesMask, List<Vector2> texels)
         {
             List<Triangle> toReturn = new List<Triangle>();
 
             Vector4 P1 = vertices[triangle.V1Index];
             Vector4 P2 = vertices[triangle.V2Index];
             Vector4 P3 = vertices[triangle.V3Index];
+
+            Vector2 T1 = texels[triangle.T1Index];
+            Vector2 T2 = texels[triangle.T2Index];
+            Vector2 T3 = texels[triangle.T3Index];
 
             //check whick point is inside
             bool P1Inside = IsInsidePlane(P1, planeId);
@@ -97,40 +101,64 @@ namespace _3dGraphics.Graphics
                     //we calculate the 2 new points
                     Vector4 newP = ClipLineToPlane(P1, P2, planeId);
                     Vector4 newQ = ClipLineToPlane(P1, P3, planeId);
+                    //we calculate the new texels
+                    Vector2 pRatios = GetRatios(P2, P1, newP);
+                    Vector2 qRatios = GetRatios(P3, P1, newQ);
+                    Vector2 pTexel = new Vector2(pRatios.X * T1.X, pRatios.Y * T1.Y);
+                    Vector2 qTexel = new Vector2(qRatios.X * T1.X, qRatios.Y * T1.Y);
+
                     //we add a new Triangle with P substituting P1
-                    toReturn.Add(new Triangle(vertices.Count, triangle.V2Index, triangle.V3Index, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(vertices.Count, triangle.V2Index, triangle.V3Index, texels.Count, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));
                     //we add another new Triangle with Q substituting P1 and P substituting P2 keeping the clockwise order
-                    toReturn.Add(new Triangle(vertices.Count+1, vertices.Count, triangle.V3Index, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(vertices.Count+1, vertices.Count, triangle.V3Index, texels.Count+1, texels.Count, triangle.T3Index, triangle.LightIntensity));
+                    
                     vertices.Add(newP);
                     vertices.Add(newQ);
                     verticesMask.Add(true);
                     verticesMask.Add(true);
+                    texels.Add(pTexel);
+                    texels.Add(qTexel);
                 }
                 else if (!P2Inside)
                 {                                     
                     Vector4 newP = ClipLineToPlane(P2, P3, planeId);
                     Vector4 newQ = ClipLineToPlane(P1, P2, planeId);
-                    
-                    toReturn.Add(new Triangle(vertices.Count, triangle.V3Index, triangle.V1Index, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));                    
-                    toReturn.Add(new Triangle(vertices.Count + 1, vertices.Count, triangle.V1Index, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));
+                    //we calculate the new texels
+                    Vector2 pRatios = GetRatios(P2, P3, newP);
+                    Vector2 qRatios = GetRatios(P2, P1, newQ);
+                    Vector2 pTexel = new Vector2(pRatios.X * T2.X, pRatios.Y * T2.Y);
+                    Vector2 qTexel = new Vector2(qRatios.X * T2.X, qRatios.Y * T2.Y);
+
+
+                    toReturn.Add(new Triangle(vertices.Count, triangle.V3Index, triangle.V1Index, texels.Count, triangle.T3Index, triangle.T1Index, triangle.LightIntensity));                    
+                    toReturn.Add(new Triangle(vertices.Count + 1, vertices.Count, triangle.V1Index, texels.Count + 1, texels.Count, triangle.T1Index, triangle.LightIntensity));
 
                     vertices.Add(newP);
                     vertices.Add(newQ);
                     verticesMask.Add(true);
                     verticesMask.Add(true);
+                    texels.Add(pTexel);
+                    texels.Add(qTexel);
                 }
                 else  //P1 AND P2 inside, P3 outside
                 {
                     Vector4 newP = ClipLineToPlane(P1, P3, planeId);
                     Vector4 newQ = ClipLineToPlane(P2, P3, planeId);
+                    //we calculate the new texels
+                    Vector2 pRatios = GetRatios(P3, P1, newP);
+                    Vector2 qRatios = GetRatios(P3, P2, newQ);
+                    Vector2 pTexel = new Vector2(pRatios.X * T3.X, pRatios.Y * T3.Y);
+                    Vector2 qTexel = new Vector2(qRatios.X * T3.X, qRatios.Y * T3.Y);
 
-                    toReturn.Add(new Triangle(vertices.Count, triangle.V1Index, triangle.V2Index, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));
-                    toReturn.Add(new Triangle(vertices.Count + 1, vertices.Count, triangle.V2Index, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(vertices.Count, triangle.V1Index, triangle.V2Index, texels.Count, triangle.T1Index, triangle.T2Index, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(vertices.Count + 1, vertices.Count, triangle.V2Index, texels.Count + 1, texels.Count, triangle.T2Index, triangle.LightIntensity));
 
                     vertices.Add(newP);
                     vertices.Add(newQ);
                     verticesMask.Add(true);
                     verticesMask.Add(true);
+                    texels.Add(pTexel);
+                    texels.Add(qTexel);
                 }
             }
             else if(numPointsInside == 1)
@@ -140,35 +168,61 @@ namespace _3dGraphics.Graphics
                     //calculate the new points keeping the clockwise ordering
                     Vector4 newP2 = ClipLineToPlane(P1, P2, planeId);
                     Vector4 newP3 = ClipLineToPlane(P1, P3, planeId);
+                    //we calculate the new texel
+                    Vector2 pRatios = GetRatios(P1, P2, newP2);
+                    Vector2 qRatios = GetRatios(P1, P3, newP3);
+                    Vector2 pTexel = new Vector2(pRatios.X * T2.X, pRatios.Y * T2.Y);
+                    Vector2 qTexel = new Vector2(qRatios.X * T3.X, qRatios.Y * T3.Y);
+
                     //add the "new" triangle to the ones to return and process against the other planes but NOT to the output triangle list
                     //the V2 and V3 indexes are for the vertices we've created and going to add. This vertices will be valid even if we split the triangles even further
-                    toReturn.Add(new Triangle(triangle.V1Index, vertices.Count, vertices.Count + 1, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(triangle.V1Index, vertices.Count, vertices.Count + 1, triangle.T1Index, texels.Count, texels.Count + 1, triangle.LightIntensity));
                     //we add the new vertices
                     vertices.Add(newP2);
                     vertices.Add(newP3);
                     //and we mark them as valid to process further
                     verticesMask.Add(true);
                     verticesMask.Add(true);
+                    //and we add the texels
+                    texels.Add(pTexel);
+                    texels.Add(qTexel);
                 }
                 else if(P2Inside)
                 {
                     Vector4 newP1 = ClipLineToPlane(P1, P2, planeId);
                     Vector4 newP3 = ClipLineToPlane(P2, P3, planeId);
-                    toReturn.Add(new Triangle(vertices.Count, triangle.V2Index, vertices.Count + 1, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));                  
+                    //
+                    Vector2 pRatios = GetRatios(P2, P1, newP1);
+                    Vector2 qRatios = GetRatios(P2, P3, newP3);
+                    Vector2 pTexel = new Vector2(pRatios.X * T1.X, pRatios.Y * T1.Y);
+                    Vector2 qTexel = new Vector2(qRatios.X * T3.X, qRatios.Y * T3.Y);
+
+                    toReturn.Add(new Triangle(vertices.Count, triangle.V2Index, vertices.Count + 1, texels.Count, triangle.T2Index, texels.Count + 1, triangle.LightIntensity));                  
+                    
                     vertices.Add(newP1);
                     vertices.Add(newP3);                    
                     verticesMask.Add(true);
                     verticesMask.Add(true);
+                    texels.Add(pTexel);
+                    texels.Add(qTexel);
                 }
                 else    //P3 inside
                 {
                     Vector4 newP1 = ClipLineToPlane(P1, P3, planeId);
-                    Vector4 newP2 = ClipLineToPlane(P2, P3, planeId);                    
-                    toReturn.Add(new Triangle(vertices.Count, vertices.Count + 1, triangle.V3Index, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));
+                    Vector4 newP2 = ClipLineToPlane(P2, P3, planeId);
+                    //
+                    Vector2 pRatios = GetRatios(P3, P1, newP1);
+                    Vector2 qRatios = GetRatios(P3, P2, newP2);
+                    Vector2 pTexel = new Vector2(pRatios.X * T1.X, pRatios.Y * T1.Y);
+                    Vector2 qTexel = new Vector2(qRatios.X * T2.X, qRatios.Y * T2.Y);
+
+                    toReturn.Add(new Triangle(vertices.Count, vertices.Count + 1, triangle.V3Index, texels.Count, texels.Count + 1, triangle.T3Index, triangle.LightIntensity));
                     vertices.Add(newP1);
                     vertices.Add(newP2);
                     verticesMask.Add(true);
                     verticesMask.Add(true);
+                    texels.Add(pTexel);
+                    texels.Add(qTexel);
                 }
             }
             else    //no points inside
@@ -240,7 +294,14 @@ namespace _3dGraphics.Graphics
 
             return alpha * p1 + oneMinusAlpha * p2; 
         }
-                
+        
+        private static Vector2 GetRatios(Vector4 pBase, Vector4 pOld, Vector4 pNew)
+        {
+            float xRatio = (pNew.X - pBase.X) / (pOld.X - pBase.X);
+            float yRatio = (pNew.Y - pBase.Y) / (pOld.Y - pBase.Y);
+
+            return new Vector2(xRatio, yRatio);
+        }
 
         public static bool IsPointInsideViewVolume(Vector4 p)
         {
