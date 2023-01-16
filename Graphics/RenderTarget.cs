@@ -61,7 +61,7 @@ namespace _3dGraphics.Graphics
             float d01 = p1_p2.X * p3_p2.X + p1_p2.Y * p3_p2.Y;
             float d11 = p3_p2.X * p3_p2.X + p3_p2.Y * p3_p2.Y;
             float invDenom = 1f / (d00 * d11 - d01 * d01);
-
+           
             //we project them on the Z=0 plane for the inside/outside check cross product            
             Vector3 projP2_P3 = ProjectTo2D(p2_p3);
             Vector3 projP1_P2 = ProjectTo2D(p1_p2);
@@ -146,7 +146,7 @@ namespace _3dGraphics.Graphics
 
                     Vector3 p_p2 = p - p2;
 
-                    //we interpolate the Z coord
+                    //we interpolate the Z coord for the zBuffer check
                     float a = (p1_p2.Y * p3_p2.Z - p1_p2.Z * p3_p2.Y);
                     float b = (p1_p2.Z * p3_p2.X - p1_p2.X * p3_p2.Z);
                     float c = (p1_p2.X * p3_p2.Y - p1_p2.Y * p3_p2.X);
@@ -157,7 +157,7 @@ namespace _3dGraphics.Graphics
                     //we calculate the pixel number
                     int pixelNr = y * _width + x;
 
-                    //we calculate the barycentric coords with a speculative double-check to avoid wasting time
+                    //we calculate the barycentric coords with a speculative double-check to avoid wasting time if we're already behind
                     Color pointColor = new Color();                  
 
                     if (invertedInterZ > _zBuffer[pixelNr])
@@ -181,7 +181,8 @@ namespace _3dGraphics.Graphics
                         //Using this lock loses around 10fps but is necessary to avoid artifacts                  
                         lock (_pixelLocks[pixelNr])
                         {
-                            if (invertedInterZ > _zBuffer[pixelNr])       //we're now using the interpolated Z
+                            //we need to check if we're still in front after the first check
+                            if (invertedInterZ > _zBuffer[pixelNr])       
                             {
                                 _zBuffer[pixelNr] = invertedInterZ;
 
@@ -193,9 +194,7 @@ namespace _3dGraphics.Graphics
                                 //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
                             }
                         }
-                    }   
-
-                    
+                    } 
                 }                                    
             }
         }

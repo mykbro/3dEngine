@@ -76,10 +76,10 @@ namespace _3dGraphics
             //we create the world and populate it with objects
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
 
-            //Generate100Cubes();            
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");
+            Generate100Cubes();            
+            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt");
 
-            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
+            //_world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(0f, 0f, 10f), 1f));
@@ -102,13 +102,13 @@ namespace _3dGraphics
 
         private void Generate100Cubes()
         {
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt");
 
-            for(int i=0; i<5; i++)
+            for(int i=0; i<10; i++)
             {
-                for(int j=0; j<5; j++)
+                for(int j=0; j<10; j++)
                 {
-                    _world.Objects.Add(new WorldObject(objToLoad, new Vector3(i * 5, 0, j*5), 0.5f));
+                    _world.Objects.Add(new WorldObject(objToLoad, new Vector3(i * 2, 0, j*2), 1f));
                 }
             }
         }
@@ -401,7 +401,7 @@ namespace _3dGraphics
 
         private void LoadTexture()
         {                       
-            _myTexture = new Texture(@"D:\Objs\smile.bmp"); 
+            _myTexture = new Texture(@"D:\Objs\smile.png"); 
         }
 
 

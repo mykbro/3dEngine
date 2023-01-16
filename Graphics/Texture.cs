@@ -31,7 +31,10 @@ namespace _3dGraphics.Graphics
 
         public Color GetColor(int x, int y)
         {
-            int pixelNr = (_height * y + x) * _bytesPerPixels;
+            int clampedX = Math.Clamp(x, 0, _widthMinusOne);
+            int clampedY = Math.Clamp(y, 0, _heightMinusOne);
+            
+            int pixelNr = (_height * clampedY + clampedX) * _bytesPerPixels;
             return new Color(255, _data[pixelNr+2], _data[pixelNr+1], _data[pixelNr]);
         }
 

@@ -18,6 +18,9 @@ namespace _3dGraphics.Graphics
         public byte G => _green;
         public byte B => _blue;
 
+        public static Color Black => new Color(255, 255, 255, 255);
+        public static Color White => new Color(255, 0, 0, 0);
+
         public Color(byte a, byte r, byte g, byte b)
         {
             _alpha = a;
@@ -30,5 +33,7 @@ namespace _3dGraphics.Graphics
         {
             return new Color(255, (byte) r, (byte) g, (byte) b);
         }
+
+        
     }
 }
