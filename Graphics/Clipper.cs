@@ -102,10 +102,10 @@ namespace _3dGraphics.Graphics
                     Vector4 newP = ClipLineToPlane(P1, P2, planeId);
                     Vector4 newQ = ClipLineToPlane(P1, P3, planeId);
                     //we calculate the new texels
-                    Vector2 pRatios = GetRatios(P2, P1, newP);
-                    Vector2 qRatios = GetRatios(P3, P1, newQ);
-                    Vector2 pTexel = new Vector2(pRatios.X * T1.X, pRatios.Y * T1.Y);
-                    Vector2 qTexel = new Vector2(qRatios.X * T1.X, qRatios.Y * T1.Y);
+                    float pRatio = GetRatio(P2, P1, newP);
+                    float qRatio = GetRatio(P3, P1, newQ);
+                    Vector2 pTexel = new Vector2(T2.X + pRatio * (T1.X - T2.X), T2.Y + pRatio * (T1.Y - T2.Y));
+                    Vector2 qTexel = new Vector2(T3.X + qRatio * (T1.X - T3.X), T3.Y + qRatio * (T1.Y - T3.Y));
 
                     //we add a new Triangle with P substituting P1
                     toReturn.Add(new Triangle(vertices.Count, triangle.V2Index, triangle.V3Index, texels.Count, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));
@@ -124,10 +124,10 @@ namespace _3dGraphics.Graphics
                     Vector4 newP = ClipLineToPlane(P2, P3, planeId);
                     Vector4 newQ = ClipLineToPlane(P1, P2, planeId);
                     //we calculate the new texels
-                    Vector2 pRatios = GetRatios(P2, P3, newP);
-                    Vector2 qRatios = GetRatios(P2, P1, newQ);
-                    Vector2 pTexel = new Vector2(pRatios.X * T2.X, pRatios.Y * T2.Y);
-                    Vector2 qTexel = new Vector2(qRatios.X * T2.X, qRatios.Y * T2.Y);
+                    float pRatio = GetRatio(P2, P3, newP);
+                    float qRatio = GetRatio(P2, P1, newQ);
+                    Vector2 pTexel = new Vector2(T3.X + pRatio * (T2.X - T3.X), T3.Y + pRatio * (T2.Y - T3.Y));
+                    Vector2 qTexel = new Vector2(T1.X + qRatio * (T2.X - T1.X), T1.Y + qRatio * (T2.Y - T1.Y));
 
 
                     toReturn.Add(new Triangle(vertices.Count, triangle.V3Index, triangle.V1Index, texels.Count, triangle.T3Index, triangle.T1Index, triangle.LightIntensity));                    
@@ -145,10 +145,10 @@ namespace _3dGraphics.Graphics
                     Vector4 newP = ClipLineToPlane(P1, P3, planeId);
                     Vector4 newQ = ClipLineToPlane(P2, P3, planeId);
                     //we calculate the new texels
-                    Vector2 pRatios = GetRatios(P3, P1, newP);
-                    Vector2 qRatios = GetRatios(P3, P2, newQ);
-                    Vector2 pTexel = new Vector2(pRatios.X * T3.X, pRatios.Y * T3.Y);
-                    Vector2 qTexel = new Vector2(qRatios.X * T3.X, qRatios.Y * T3.Y);
+                    float pRatio = GetRatio(P3, P1, newP);
+                    float qRatio = GetRatio(P3, P2, newQ);
+                    Vector2 pTexel = new Vector2(T1.X + pRatio * (T3.X - T1.X), T1.Y + pRatio * (T3.Y - T1.Y));
+                    Vector2 qTexel = new Vector2(T2.X + qRatio * (T3.X - T2.X), T2.Y + qRatio * (T3.Y - T2.Y));
 
                     toReturn.Add(new Triangle(vertices.Count, triangle.V1Index, triangle.V2Index, texels.Count, triangle.T1Index, triangle.T2Index, triangle.LightIntensity));
                     toReturn.Add(new Triangle(vertices.Count + 1, vertices.Count, triangle.V2Index, texels.Count + 1, texels.Count, triangle.T2Index, triangle.LightIntensity));
@@ -169,10 +169,10 @@ namespace _3dGraphics.Graphics
                     Vector4 newP2 = ClipLineToPlane(P1, P2, planeId);
                     Vector4 newP3 = ClipLineToPlane(P1, P3, planeId);
                     //we calculate the new texel
-                    Vector2 pRatios = GetRatios(P1, P2, newP2);
-                    Vector2 qRatios = GetRatios(P1, P3, newP3);
-                    Vector2 pTexel = new Vector2(pRatios.X * T2.X, pRatios.Y * T2.Y);
-                    Vector2 qTexel = new Vector2(qRatios.X * T3.X, qRatios.Y * T3.Y);
+                    float pRatio = GetRatio(P1, P2, newP2);
+                    float qRatio = GetRatio(P1, P3, newP3);
+                    Vector2 pTexel = new Vector2(T1.X + pRatio * (T2.X - T1.X), T1.Y + pRatio * (T2.Y - T1.Y));
+                    Vector2 qTexel = new Vector2(T1.X + qRatio * (T3.X - T1.X), T1.Y + qRatio * (T3.Y - T1.Y));
 
                     //add the "new" triangle to the ones to return and process against the other planes but NOT to the output triangle list
                     //the V2 and V3 indexes are for the vertices we've created and going to add. This vertices will be valid even if we split the triangles even further
@@ -192,10 +192,10 @@ namespace _3dGraphics.Graphics
                     Vector4 newP1 = ClipLineToPlane(P1, P2, planeId);
                     Vector4 newP3 = ClipLineToPlane(P2, P3, planeId);
                     //
-                    Vector2 pRatios = GetRatios(P2, P1, newP1);
-                    Vector2 qRatios = GetRatios(P2, P3, newP3);
-                    Vector2 pTexel = new Vector2(pRatios.X * T1.X, pRatios.Y * T1.Y);
-                    Vector2 qTexel = new Vector2(qRatios.X * T3.X, qRatios.Y * T3.Y);
+                    float pRatio = GetRatio(P2, P1, newP1);
+                    float qRatio = GetRatio(P2, P3, newP3);
+                    Vector2 pTexel = new Vector2(T2.X + pRatio * (T1.X - T2.X), T2.Y + pRatio * (T1.Y - T2.Y));
+                    Vector2 qTexel = new Vector2(T2.X + qRatio * (T3.X - T2.X), T2.Y + qRatio * (T3.Y - T2.Y));
 
                     toReturn.Add(new Triangle(vertices.Count, triangle.V2Index, vertices.Count + 1, texels.Count, triangle.T2Index, texels.Count + 1, triangle.LightIntensity));                  
                     
@@ -211,10 +211,10 @@ namespace _3dGraphics.Graphics
                     Vector4 newP1 = ClipLineToPlane(P1, P3, planeId);
                     Vector4 newP2 = ClipLineToPlane(P2, P3, planeId);
                     //
-                    Vector2 pRatios = GetRatios(P3, P1, newP1);
-                    Vector2 qRatios = GetRatios(P3, P2, newP2);
-                    Vector2 pTexel = new Vector2(pRatios.X * T1.X, pRatios.Y * T1.Y);
-                    Vector2 qTexel = new Vector2(qRatios.X * T2.X, qRatios.Y * T2.Y);
+                    float pRatio = GetRatio(P3, P1, newP1);
+                    float qRatio = GetRatio(P3, P2, newP2);
+                    Vector2 pTexel = new Vector2(T3.X + pRatio * (T1.X - T3.X), T3.Y + pRatio * (T1.Y - T3.Y));
+                    Vector2 qTexel = new Vector2(T3.X + qRatio * (T2.X - T3.X), T3.Y + qRatio * (T2.Y - T3.Y));
 
                     toReturn.Add(new Triangle(vertices.Count, vertices.Count + 1, triangle.V3Index, texels.Count, texels.Count + 1, triangle.T3Index, triangle.LightIntensity));
                     vertices.Add(newP1);
@@ -295,12 +295,16 @@ namespace _3dGraphics.Graphics
             return alpha * p1 + oneMinusAlpha * p2; 
         }
         
-        private static Vector2 GetRatios(Vector4 pBase, Vector4 pOld, Vector4 pNew)
+        private static float GetRatio(Vector4 pBase, Vector4 pOld, Vector4 pNew)
         {
-            float xRatio = (pNew.X - pBase.X) / (pOld.X - pBase.X);
-            float yRatio = (pNew.Y - pBase.Y) / (pOld.Y - pBase.Y);
+            Vector4 newV = pNew - pBase;
+            Vector4 oldV = pOld - pBase;
 
-            return new Vector2(xRatio, yRatio);
+            float newNormSquared = Vector4.Dot(newV, newV);
+            float oldNormSquared = Vector4.Dot(oldV, oldV);
+            float toReturn = MathF.Sqrt(newNormSquared / oldNormSquared);
+
+            return toReturn;
         }
 
         public static bool IsPointInsideViewVolume(Vector4 p)
