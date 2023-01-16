@@ -104,9 +104,9 @@ namespace _3dGraphics
         {
             Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt");
 
-            for(int i=0; i<10; i++)
+            for(int i=0; i<20; i++)
             {
-                for(int j=0; j<10; j++)
+                for(int j=0; j<20; j++)
                 {
                     _world.Objects.Add(new WorldObject(objToLoad, new Vector3(i * 2, 0, j*2), 1f));
                 }
@@ -378,12 +378,12 @@ namespace _3dGraphics
                                 int t1 = 1, t2 = 1, t3 = 1;
                                 
                                 
-                                if(parameters1.Length > 1)
+                                if(parameters1.Length > 2)
                                 {
-                                    t1 = Int32.Parse(parameters1[1]);
-                                    t2 = Int32.Parse(parameters2[1]);
-                                    t3 = Int32.Parse(parameters3[1]);
-                                } 
+                                    t1 = Int32.Parse(parameters1[2]);
+                                    t2 = Int32.Parse(parameters2[2]);
+                                    t3 = Int32.Parse(parameters3[2]);
+                                }
                                                             
 
                                 triangles.Add(new Triangle(v1 - 1, v2 - 1, v3 - 1, t1 - 1, t2 - 1, t3 - 1, 1f));    //obj file indexes count from 1; we also initialize to MAX luminosity

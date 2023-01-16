@@ -124,8 +124,8 @@ namespace _3dGraphics.Graphics
                     Vector4 newP = ClipLineToPlane(P2, P3, planeId);
                     Vector4 newQ = ClipLineToPlane(P1, P2, planeId);
                     //we calculate the new texels
-                    float pRatio = GetRatio(P2, P3, newP);
-                    float qRatio = GetRatio(P2, P1, newQ);
+                    float pRatio = GetRatio(P3, P2, newP);
+                    float qRatio = GetRatio(P1, P2, newQ);
                     Vector2 pTexel = new Vector2(T3.X + pRatio * (T2.X - T3.X), T3.Y + pRatio * (T2.Y - T3.Y));
                     Vector2 qTexel = new Vector2(T1.X + qRatio * (T2.X - T1.X), T1.Y + qRatio * (T2.Y - T1.Y));
 
@@ -145,8 +145,8 @@ namespace _3dGraphics.Graphics
                     Vector4 newP = ClipLineToPlane(P1, P3, planeId);
                     Vector4 newQ = ClipLineToPlane(P2, P3, planeId);
                     //we calculate the new texels
-                    float pRatio = GetRatio(P3, P1, newP);
-                    float qRatio = GetRatio(P3, P2, newQ);
+                    float pRatio = GetRatio(P1, P3, newP);
+                    float qRatio = GetRatio(P2, P3, newQ);
                     Vector2 pTexel = new Vector2(T1.X + pRatio * (T3.X - T1.X), T1.Y + pRatio * (T3.Y - T1.Y));
                     Vector2 qTexel = new Vector2(T2.X + qRatio * (T3.X - T2.X), T2.Y + qRatio * (T3.Y - T2.Y));
 
@@ -295,10 +295,10 @@ namespace _3dGraphics.Graphics
             return alpha * p1 + oneMinusAlpha * p2; 
         }
         
-        private static float GetRatio(Vector4 pBase, Vector4 pOld, Vector4 pNew)
+        private static float GetRatio(Vector4 pInside, Vector4 pOutside, Vector4 pInterpolated)
         {
-            Vector4 newV = pNew - pBase;
-            Vector4 oldV = pOld - pBase;
+            Vector4 newV = pInterpolated - pInside;
+            Vector4 oldV = pOutside - pInside;
 
             float newNormSquared = Vector4.Dot(newV, newV);
             float oldNormSquared = Vector4.Dot(oldV, oldV);

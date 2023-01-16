@@ -30,7 +30,7 @@ namespace _3dGraphics.Graphics
         }
 
         public Color GetColor(int x, int y)
-        {
+        {            
             int clampedX = Math.Clamp(x, 0, _widthMinusOne);
             int clampedY = Math.Clamp(y, 0, _heightMinusOne);
             
