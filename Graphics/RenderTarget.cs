@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
@@ -71,10 +72,7 @@ namespace _3dGraphics.Graphics
             Vector3 projP3 = ProjectTo2D(p3);
 
 
-            Color fragmentColor = fragment.Color;
-            byte redLvl = fragmentColor.R;
-            byte greenLvl = fragmentColor.G;
-            byte blueLvl = fragmentColor.B;
+            Color fragmentColor = fragment.Color;           
 
             for (int y = minY; y <= maxY; y++)
             {
@@ -154,43 +152,50 @@ namespace _3dGraphics.Graphics
                     float c = (p1_p2.X * p3_p2.Y - p1_p2.Y * p3_p2.X);
                     //float interpolatedZ = - (a * p_p2.X + b * p_p2.Y) / c + p2.Z;                        
                     //float invertedInterZ = 1 / interpolatedZ;
-                    float invertedInterZ = -c / (a * p_p2.X + b * p_p2.Y - c * p2.Z);      //one more mult, but one less division
-
-                    //we calculate the barycentric coords
-                    float d20 = p_p2.X * p1_p2.X + p_p2.Y * p1_p2.Y;
-                    float d21 = p_p2.X * p3_p2.X + p_p2.Y * p3_p2.Y;
-
-                    float v = (d11 * d20 - d01 * d21) * invDenom;           //equivalent to P1
-                    float w = (d00 * d21 - d01 * d20) * invDenom;           //equivalent to P3
-                    float u = 1.0f - v - w;                                 //equivalent to P2
-                    
-                    //we interpolate the texture coordinates
-                    //Vector2 pointTexel = v * t1 + u * t2 + w * t3;
-                    float texelX = v * t1.X + u * t2.X + w * t3.X;
-                    float texelY = v * t1.Y + u * t2.Y + w * t3.Y;
-
-                    //we sample the texture
-                    Color pointColor = texture.GetColorNormalizedCoords(texelX, texelY);                   
+                    float invertedInterZ = -c / (a * p_p2.X + b * p_p2.Y - c * p2.Z);      //one more mult, but one less division                   
 
                     //we calculate the pixel number
                     int pixelNr = y * _width + x;
 
-                    //lock is A LOT faster than .net Spinlock. Same speed as my AsyncStuff.Spinlock
-                    //Using this lock loses around 10fps but is necessary to avoid artifacts
-                    lock (_pixelLocks[pixelNr])
+                    //we calculate the barycentric coords with a speculative double-check to avoid wasting time
+                    Color pointColor = new Color();                  
+
+                    if (invertedInterZ > _zBuffer[pixelNr])
                     {
-                        if (invertedInterZ > _zBuffer[pixelNr])       //we're now using the interpolated Z
+                        float d20 = p_p2.X * p1_p2.X + p_p2.Y * p1_p2.Y;
+                        float d21 = p_p2.X * p3_p2.X + p_p2.Y * p3_p2.Y;
+
+                        float v = (d11 * d20 - d01 * d21) * invDenom;           //equivalent to P1
+                        float w = (d00 * d21 - d01 * d20) * invDenom;           //equivalent to P3
+                        float u = 1.0f - v - w;                                 //equivalent to P2
+
+                        //we interpolate the texture coordinates
+                        //Vector2 pointTexel = v * t1 + u * t2 + w * t3;
+                        float texelX = v * t1.X + u * t2.X + w * t3.X;
+                        float texelY = v * t1.Y + u * t2.Y + w * t3.Y;
+
+                        //we sample the texture
+                        pointColor = texture.GetColorNormalizedCoords(texelX, texelY);
+
+                        //lock is A LOT faster than .net Spinlock. Same speed as my AsyncStuff.Spinlock
+                        //Using this lock loses around 10fps but is necessary to avoid artifacts                  
+                        lock (_pixelLocks[pixelNr])
                         {
-                            _zBuffer[pixelNr] = invertedInterZ;
+                            if (invertedInterZ > _zBuffer[pixelNr])       //we're now using the interpolated Z
+                            {
+                                _zBuffer[pixelNr] = invertedInterZ;
 
-                            int pixelStartingByte = pixelNr * PixelStride;
+                                int pixelStartingByte = pixelNr * PixelStride;
 
-                            _data[pixelStartingByte] = pointColor.B;
-                            _data[pixelStartingByte + 1] = pointColor.G;
-                            _data[pixelStartingByte + 2] = pointColor.R;
-                            //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
+                                _data[pixelStartingByte] = pointColor.B;
+                                _data[pixelStartingByte + 1] = pointColor.G;
+                                _data[pixelStartingByte + 2] = pointColor.R;
+                                //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
+                            }
                         }
-                    }
+                    }   
+
+                    
                 }                                    
             }
         }
