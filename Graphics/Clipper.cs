@@ -209,6 +209,7 @@ namespace _3dGraphics.Graphics
 
         private static Vector4 ClipLineToPlane(Vector4 p1, Vector4 p2, PlaneId planeId)
         {
+            //based on the following equation: p = alpha*[p1.X, p1.Y, p1.Z, p1.W] + (1-alpha)*[p2.X, p2.Y, p2.Z, p2.W]
             float alpha;
 
             switch (planeId)

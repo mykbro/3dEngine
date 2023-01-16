@@ -51,6 +51,11 @@ namespace _3dGraphics.Graphics
             Vector3 p1_p2 = p1 - p2;
             Vector3 p3_p1 = p3 - p1;
             Vector3 p3_p2 = p3 - p2;
+            //these are for barycentric coords using Cramer's rule
+            float d00 = p1_p2.X * p1_p2.X + p1_p2.Y * p1_p2.Y;
+            float d01 = p1_p2.X * p3_p2.X + p1_p2.Y * p3_p2.Y;
+            float d11 = p3_p2.X * p3_p2.X + p3_p2.Y * p3_p2.Y;
+            float invDenom = 1f / (d00 * d11 - d01 * d01);
 
             //we project them on the Z=0 plane for the inside/outside check cross product            
             Vector3 projP2_P3 = ProjectTo2D(p2_p3);
@@ -139,13 +144,26 @@ namespace _3dGraphics.Graphics
 
                     Vector3 p_p2 = p - p2;
 
+                    //we interpolate the Z coord
                     float a = (p1_p2.Y * p3_p2.Z - p1_p2.Z * p3_p2.Y);
                     float b = (p1_p2.Z * p3_p2.X - p1_p2.X * p3_p2.Z);
                     float c = (p1_p2.X * p3_p2.Y - p1_p2.Y * p3_p2.X);
                     //float interpolatedZ = - (a * p_p2.X + b * p_p2.Y) / c + p2.Z;                        
                     //float invertedInterZ = 1 / interpolatedZ;
-
                     float invertedInterZ = -c / (a * p_p2.X + b * p_p2.Y - c * p2.Z);      //one more mult, but one less division
+
+                    //we calculate the barycentric coords
+                    float d20 = p_p2.X * p1_p2.X + p_p2.Y * p1_p2.Y;
+                    float d21 = p_p2.X * p3_p2.X + p_p2.Y * p3_p2.Y;
+                    
+                    float v = (d11 * d20 - d01 * d21) * invDenom;           //equivalent to P1
+                    float w = (d00 * d21 - d01 * d20) * invDenom;           //equivalent to P3
+                    float u = 1.0f - v - w;                                 //equivalent to P2
+
+                    //we interpolate the texture coordinates
+
+
+
 
                     //we calculate the pixel number
                     int pixelNr = y * _width + x;
@@ -170,22 +188,24 @@ namespace _3dGraphics.Graphics
             }
         }
        
-        public void RenderFragment2(Fragment3D fragment)
+        public void RenderFragmentScanline(Fragment3D fragment)
         {
             //BAD CONCEPT
-            
+
             Vector3[] points = new Vector3[] { fragment.P1, fragment.P2, fragment.P3 };
             
             int highestPointIndex = HighestYPoint(points);
             int lowestPointIndex = LowestYPoint(points);
             int middlePointIndex = MiddleYPoint(highestPointIndex, lowestPointIndex);
 
+            int sum = highestPointIndex + lowestPointIndex + middlePointIndex;
+
             Vector3 highestPoint = points[highestPointIndex];
             Vector3 lowestPoint = points[lowestPointIndex];
             Vector3 middlePoint= points[middlePointIndex];
 
-            if((int) highestPoint.Y == (int) middlePoint.Y)      //top triangle, includes the line case
-            {
+            if ((int) highestPoint.Y == (int) middlePoint.Y)      //top triangle, includes the line case
+            {                
                 RenderTopTriangle(highestPoint, middlePoint, lowestPoint, points[0], points[1], points[2], fragment.Color);
             }
             else if((int) middlePoint.Y == (int) lowestPoint.Y)     //bottom triangle
@@ -244,30 +264,30 @@ namespace _3dGraphics.Graphics
             int dY = maxY - minY;
 
             int leftX = (int) Math.Min(highestPoint.X, middlePoint.X);
-            int rightX = (int)Math.Max(highestPoint.X, middlePoint.X);
+            int rightX = (int) Math.Max(highestPoint.X, middlePoint.X);
             int bottomX = (int) lowestPoint.X;
 
-            float dXFromLeftToBottom = ((float)(bottomX - leftX))  / dY;
-            float dXFromRightToBottom = ((float)(bottomX - rightX)) / dY;
+            float dXFromLeftToBottom = dY != 0 ? ((float)(bottomX - leftX))  / dY : 0;      //to avoid division by 0 for the line case
+            float dXFromRightToBottom = dY != 0 ? ((float)(bottomX - rightX)) / dY : 0;     //to avoid division by 0 for the line case
 
             float lineMinXf = (float) leftX;
             float lineMaxXf = (float) rightX;
 
-            for (int y = minY; y <= maxY; y++)
+            for (int y = minY, i = 0; y <= maxY; y++, i++)
             {
                 float yAndHalf = y + 0.5f;  //cache result
 
-                int lineMinX = (int) lineMinXf - 1;      
-                int lineMaxX = (int) lineMaxXf + 1;
+                int lineMinX = (int) (lineMinXf + i * dXFromLeftToBottom);      
+                int lineMaxX = (int) (lineMaxXf + i * dXFromRightToBottom);
                 bool startingXFound = false;
                 bool endingXFound = false;
-                int startingX = lineMaxX + 1;   //initialize over Max so that if we do not found any X startingX will be > than endingX and we won't draw anything
+                int startingX = lineMaxX + 1;    //initialize over Max so that if we do not found any X startingX will be > than endingX and we won't draw anything
                 int endingX = lineMinX - 1;     //see above
 
-                Vector3 p = new Vector3(0f, yAndHalf, 0f);
-
+                Vector3 p = new Vector3(0f, yAndHalf, 0f); 
+                
                 for (int x = lineMinX; x <= lineMaxX && !startingXFound; x++)
-                {
+                {   
                     //Vector3 p = new Vector3(x + 0.5f, yAndHalf, 0f);
                     p.X = x + 0.5f;
 
@@ -339,7 +359,7 @@ namespace _3dGraphics.Graphics
                     int pixelNr = y * _width + x;
 
                     //lock is A LOT faster than .net Spinlock. Same speed as my AsyncStuff.Spinlock
-                    //Using this lock loses around 10fps but is necessary to avoid artifacts
+                    //Using this lock loses around 10fps but is necessary to avoid artifacts                 
                     lock (_pixelLocks[pixelNr])
                     {
                         if (invertedInterZ > _zBuffer[pixelNr])       //we're now using the interpolated Z
@@ -353,11 +373,11 @@ namespace _3dGraphics.Graphics
                             _data[pixelStartingByte + 2] = triangleColor.R;
                             //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
                         }
-                    }
+                    }                    
                 }
 
-                lineMinXf += dXFromLeftToBottom;
-                lineMaxXf += dXFromRightToBottom;
+                //lineMinXf += dXFromLeftToBottom;
+                //lineMaxXf += dXFromRightToBottom;
             }
         }
 
@@ -394,18 +414,24 @@ namespace _3dGraphics.Graphics
             float lineMaxXf = (float) rightX;
 
             //we need to iterate from the bottom
-            for (int y = maxY; y >= minY; y--)
+            for (int y = maxY, i = 0; y >= minY; y--, i++)
             {
                 float yAndHalf = y + 0.5f;  //cache result
 
-                int lineMinX = (int) lineMinXf - 1;
-                int lineMaxX = (int) lineMaxXf + 1;
+                int lineMinX = (int) (lineMinXf - i * dXFromLeftToTop);
+                int lineMaxX = (int) (lineMaxXf - i * dXFromRightToTop);
                 bool startingXFound = false;
                 bool endingXFound = false;
                 int startingX = lineMaxX + 1;   //initialize over Max so that if we do not found any X startingX will be > than endingX and we won't draw anything
                 int endingX = lineMinX - 1;     //see above
 
                 Vector3 p = new Vector3(0f, yAndHalf, 0f);
+
+
+                if (dY == 0)
+                {
+
+                }
 
                 for (int x = lineMinX; x <= lineMaxX && !startingXFound; x++)
                 {
@@ -498,8 +524,8 @@ namespace _3dGraphics.Graphics
                 }
 
                 //we need to subtract because we're going up
-                lineMinXf -= dXFromLeftToTop;
-                lineMaxXf -= dXFromRightToTop;
+                //lineMinXf -= dXFromLeftToTop;
+                //lineMaxXf -= dXFromRightToTop;
             }
         }
 
@@ -519,9 +545,9 @@ namespace _3dGraphics.Graphics
         private int LowestYPoint(Vector3[] points)
         {
             //with lowest we mean by screen reference not absolute number. A point with Y = 5 is "lower" that one with Y = 0
-            int lowest = 0;
+            int lowest = 2;
 
-            for (int i = 1; i < 3; i++)  //we start from the second point
+            for (int i = 1; i >= 0 ; i--)  //we start from the second point backwards to avoid returning the same index as highest
             {
                 if ((int)points[i].Y > (int) points[lowest].Y)
                     lowest = i;
@@ -579,348 +605,9 @@ namespace _3dGraphics.Graphics
             Vector3 p_p1 = p - p1;
 
 
-            return  Vector3.Cross(p2_p3, p_p3).Z <= 0 &&    //early reject using && properties
+            return Vector3.Cross(p2_p3, p_p3).Z <= 0 &&    //early reject using && properties
                     Vector3.Cross(p1_p2, p_p2).Z <= 0 &&
                     Vector3.Cross(p3_p1, p_p1).Z <= 0;
-        }
-
-        public void RenderFragmentUsingScanLine(Fragment3D fragment)
-        {
-            /* NOT QUITE WORKING */
-            
-            Vector3[] pointsFloat = new Vector3[] { fragment.P1, fragment.P2, fragment.P3 };
-            Color fragmentColor = fragment.Color;
-
-            Point[] pointsInt = new Point[] { new Point((int)pointsFloat[0].X, (int)pointsFloat[0].Y), new Point((int)pointsFloat[1].X, (int)pointsFloat[1].Y), new Point((int)pointsFloat[2].X, (int)pointsFloat[2].Y) };
-
-            int highestPointIndex = HighestYPoint(pointsFloat);
-            int lowestPointIndex = LowestYPoint(pointsFloat);
-            int middlePointIndex = MiddleYPoint(highestPointIndex, lowestPointIndex);
-
-            //some caching
-            Vector3 highestPoint = pointsFloat[highestPointIndex];
-            Vector3 middlePoint = pointsFloat[middlePointIndex];
-            Vector3 lowestPoint = pointsFloat[lowestPointIndex];
-
-            Point highestPointInt = pointsInt[highestPointIndex];
-            Point middlePointInt = pointsInt[middlePointIndex];
-            Point lowestPointInt = pointsInt[lowestPointIndex];
-
-            //we calculate and cache some vectors for zBuff check
-            Vector3 p1_p2 = pointsFloat[0] - pointsFloat[1];
-            Vector3 p3_p2 = pointsFloat[2] - pointsFloat[1];
-
-            //we compare the rows
-            if (highestPointInt.Y == lowestPointInt.Y)
-            {
-                //we draw a line
-                int y = highestPointInt.Y;
-                int fromX = Math.Min(Math.Min(pointsInt[0].X, pointsInt[1].X), pointsInt[2].X);
-                int toX = Math.Max(Math.Max(pointsInt[0].X, pointsInt[1].X), pointsInt[2].X);
-                float yAndHalf = y + 0.5f;
-
-                for (int x = fromX; x <= toX; x++)
-                {
-                    Vector3 p = new Vector3(x + 0.5f, yAndHalf, 0f);
-
-                    Vector3 p_p2 = p - pointsFloat[1];
-
-                    float a = (p1_p2.Y * p3_p2.Z - p1_p2.Z * p3_p2.Y);
-                    float b = (p1_p2.Z * p3_p2.X - p1_p2.X * p3_p2.Z);
-                    float c = (p1_p2.X * p3_p2.Y - p1_p2.Y * p3_p2.X);
-                    //float interpolatedZ = - (a * p_p2.X + b * p_p2.Y) / c + p2.Z;                        
-                    //float invertedInterZ = 1 / interpolatedZ;
-
-                    float invertedInterZ = -c / (a * p_p2.X + b * p_p2.Y - c * pointsFloat[1].Z);      //one more mult, but one less division
-
-                    //we calculate the pixel number
-                    int pixelNr = y * _width + x;
-
-                    //lock is A LOT faster than .net Spinlock. Same speed as my AsyncStuff.Spinlock
-                    //Using this lock loses around 10fps but is necessary to avoid artifacts
-                    lock (_pixelLocks[pixelNr])
-                    {
-                        if (invertedInterZ > _zBuffer[pixelNr])       //we're now using the interpolated Z
-                        {
-                            _zBuffer[pixelNr] = invertedInterZ;
-
-                            int pixelStartingByte = pixelNr * Stride;
-
-                            _data[pixelStartingByte] = fragmentColor.B;
-                            _data[pixelStartingByte + 1] = fragmentColor.G;
-                            _data[pixelStartingByte + 2] = fragmentColor.R;
-                            //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
-                        }
-                    }
-                }
-            }
-            else if (middlePointInt.Y == lowestPointInt.Y)
-            {
-                //we draw a bottom triangle 
-                int highestY = highestPointInt.Y;
-                int lowestY = lowestPointInt.Y;
-
-                float lowestX = Math.Min(middlePoint.X, lowestPoint.X);
-                float highestX = Math.Max(middlePoint.X, lowestPoint.X);
-
-                float toMinDX = (highestPoint.X - lowestX) / (highestPoint.Y - middlePoint.Y);     //using middlePoint.Y or lowestPoint.Y is the same :)
-                float toMaxDX = (highestPoint.X - highestX) / (highestPoint.Y - middlePoint.Y);
-
-                float fromX = highestPointInt.X;
-                float toX = highestPointInt.X;
-
-                for (int y = highestY; y <= lowestY; y++)
-                {
-                    float yAndHalf = y + 0.5f;
-
-                    if (y == lowestY)
-                    {
-                        fromX = lowestX;
-                        toX = highestX;
-                    }
-
-                    for (int x = (int)fromX; x <= (int)toX; x++)
-                    {
-                        Vector3 p = new Vector3(x + 0.5f, yAndHalf, 0f);
-
-                        Vector3 p_p2 = p - pointsFloat[1];
-
-                        float a = (p1_p2.Y * p3_p2.Z - p1_p2.Z * p3_p2.Y);
-                        float b = (p1_p2.Z * p3_p2.X - p1_p2.X * p3_p2.Z);
-                        float c = (p1_p2.X * p3_p2.Y - p1_p2.Y * p3_p2.X);
-                        //float interpolatedZ = - (a * p_p2.X + b * p_p2.Y) / c + p2.Z;                        
-                        //float invertedInterZ = 1 / interpolatedZ;
-
-                        float invertedInterZ = -c / (a * p_p2.X + b * p_p2.Y - c * pointsFloat[1].Z);      //one more mult, but one less division
-
-                        //we calculate the pixel number
-                        int pixelNr = y * _width + x;
-
-                        //lock is A LOT faster than .net Spinlock. Same speed as my AsyncStuff.Spinlock
-                        //Using this lock loses around 10fps but is necessary to avoid artifacts
-                        lock (_pixelLocks[pixelNr])
-                        {
-                            if (invertedInterZ > _zBuffer[pixelNr])       //we're now using the interpolated Z
-                            {
-                                _zBuffer[pixelNr] = invertedInterZ;
-
-                                int pixelStartingByte = pixelNr * Stride;
-
-                                _data[pixelStartingByte] = fragmentColor.B;
-                                _data[pixelStartingByte + 1] = fragmentColor.G;
-                                _data[pixelStartingByte + 2] = fragmentColor.R;
-                                //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
-                            }
-                        }
-                    }
-
-                    fromX += toMinDX;
-                    toX += toMaxDX;
-                }
-
-            }
-            else if (highestPointInt.Y == middlePointInt.Y)
-            {
-                //we draw a top triangle 
-                int highestY = middlePointInt.Y;
-                int lowestY = lowestPointInt.Y;
-
-                float lowestX = Math.Min(highestPoint.X, middlePoint.X);
-                float highestX = Math.Max(highestPoint.X, middlePoint.X);
-
-                float fromMinDX = (lowestX - lowestPoint.X) / (middlePoint.Y - lowestPoint.Y);
-                float fromMaxDX = (highestX - lowestPoint.X) / (middlePoint.Y - lowestPoint.Y);
-
-                float fromX = lowestX;
-                float toX = highestX;
-
-                for (int y = highestY; y <= lowestY; y++)
-                {
-                    float yAndHalf = y + 0.5f;
-
-                    if (y == lowestY)
-                    {
-                        fromX = lowestPoint.X;
-                        toX = lowestPoint.X;
-                    }
-
-                    for (int x = (int)fromX; x <= (int)toX; x++)
-                    {
-                        Vector3 p = new Vector3(x + 0.5f, yAndHalf, 0f);
-
-                        Vector3 p_p2 = p - pointsFloat[1];
-
-                        float a = (p1_p2.Y * p3_p2.Z - p1_p2.Z * p3_p2.Y);
-                        float b = (p1_p2.Z * p3_p2.X - p1_p2.X * p3_p2.Z);
-                        float c = (p1_p2.X * p3_p2.Y - p1_p2.Y * p3_p2.X);
-                        //float interpolatedZ = - (a * p_p2.X + b * p_p2.Y) / c + p2.Z;                        
-                        //float invertedInterZ = 1 / interpolatedZ;
-
-                        float invertedInterZ = -c / (a * p_p2.X + b * p_p2.Y - c * pointsFloat[1].Z);      //one more mult, but one less division
-
-                        //we calculate the pixel number
-                        int pixelNr = y * _width + x;
-
-                        //lock is A LOT faster than .net Spinlock. Same speed as my AsyncStuff.Spinlock
-                        //Using this lock loses around 10fps but is necessary to avoid artifacts
-                        lock (_pixelLocks[pixelNr])
-                        {
-                            if (invertedInterZ > _zBuffer[pixelNr])       //we're now using the interpolated Z
-                            {
-                                _zBuffer[pixelNr] = invertedInterZ;
-
-                                int pixelStartingByte = pixelNr * Stride;
-
-                                _data[pixelStartingByte] = fragmentColor.B;
-                                _data[pixelStartingByte + 1] = fragmentColor.G;
-                                _data[pixelStartingByte + 2] = fragmentColor.R;
-                                //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
-                            }
-                        }
-                    }
-
-                    fromX += fromMinDX;
-                    toX += fromMaxDX;
-                }
-            }
-            else
-            {
-                //we draw both a bottom (minus one row) and a top triangle                   
-                float toLowDX = (highestPoint.X - lowestPoint.X) / (highestPoint.Y - lowestPoint.Y);
-                float oppositeMiddleX = highestPoint.X + toLowDX * (middlePoint.Y - highestPoint.Y);
-
-                int highestY = highestPointInt.Y;
-                int lowestY = middlePointInt.Y;
-
-                float lowestX = Math.Min(middlePoint.X, oppositeMiddleX);
-                float highestX = Math.Max(middlePoint.X, oppositeMiddleX);
-
-                float toMinDX = (highestPoint.X - lowestX) / (highestPoint.Y - middlePoint.Y);
-                float toMaxDX = (highestPoint.X - highestX) / (highestPoint.Y - middlePoint.Y);
-
-                float fromX = highestPointInt.X;
-                float toX = highestPointInt.X;
-
-                for (int y = highestY; y < lowestY; y++)        //we skip the last row
-                {
-                    float yAndHalf = y + 0.5f;
-
-                    /* no need for this as we skip the last row
-                    if (y == lowestY)
-                    {
-                        fromX = lowestX;
-                        toX = highestX;
-                    }
-                    */
-
-                    for (int x = (int)fromX; x <= (int)toX; x++)
-                    {
-                        Vector3 p = new Vector3(x + 0.5f, yAndHalf, 0f);
-
-                        Vector3 p_p2 = p - pointsFloat[1];
-
-                        float a = (p1_p2.Y * p3_p2.Z - p1_p2.Z * p3_p2.Y);
-                        float b = (p1_p2.Z * p3_p2.X - p1_p2.X * p3_p2.Z);
-                        float c = (p1_p2.X * p3_p2.Y - p1_p2.Y * p3_p2.X);
-                        //float interpolatedZ = - (a * p_p2.X + b * p_p2.Y) / c + p2.Z;                        
-                        //float invertedInterZ = 1 / interpolatedZ;
-
-                        float invertedInterZ = -c / (a * p_p2.X + b * p_p2.Y - c * pointsFloat[1].Z);      //one more mult, but one less division
-
-                        //we calculate the pixel number
-                        int pixelNr = y * _width + x;
-
-                        //lock is A LOT faster than .net Spinlock. Same speed as my AsyncStuff.Spinlock
-                        //Using this lock loses around 10fps but is necessary to avoid artifacts
-                        lock (_pixelLocks[pixelNr])
-                        {
-                            if (invertedInterZ > _zBuffer[pixelNr])       //we're now using the interpolated Z
-                            {
-                                _zBuffer[pixelNr] = invertedInterZ;
-
-                                int pixelStartingByte = pixelNr * Stride;
-
-                                _data[pixelStartingByte] = fragmentColor.B;
-                                _data[pixelStartingByte + 1] = fragmentColor.G;
-                                _data[pixelStartingByte + 2] = fragmentColor.R;
-                                //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
-                            }
-                        }
-                    }
-
-                    fromX += toMinDX;
-                    toX += toMaxDX;
-                }
-
-                //we switch to a top triangle
-
-                highestY = middlePointInt.Y;
-                lowestY = lowestPointInt.Y;
-
-                lowestX = Math.Min(middlePoint.X, oppositeMiddleX);
-                highestX = Math.Max(middlePoint.X, oppositeMiddleX);
-
-                float fromMinDX = (lowestX - lowestPoint.X) / (middlePoint.Y - lowestPoint.Y);
-                float fromMaxDX = (highestX - lowestPoint.X) / (middlePoint.Y - lowestPoint.Y);
-
-                fromX = lowestX;
-                toX = highestX;
-
-                for (int y = highestY; y <= lowestY; y++)
-                {
-                    float yAndHalf = y + 0.5f;
-
-                    if (y == lowestY)
-                    {
-                        fromX = lowestPoint.X;
-                        toX = lowestPoint.X;
-                    }
-
-                    for (int x = (int)fromX; x <= (int)toX; x++)
-                    {
-                        Vector3 p = new Vector3(x + 0.5f, yAndHalf, 0f);
-
-                        Vector3 p_p2 = p - pointsFloat[1];
-
-                        float a = (p1_p2.Y * p3_p2.Z - p1_p2.Z * p3_p2.Y);
-                        float b = (p1_p2.Z * p3_p2.X - p1_p2.X * p3_p2.Z);
-                        float c = (p1_p2.X * p3_p2.Y - p1_p2.Y * p3_p2.X);
-                        //float interpolatedZ = - (a * p_p2.X + b * p_p2.Y) / c + p2.Z;                        
-                        //float invertedInterZ = 1 / interpolatedZ;
-
-                        float invertedInterZ = -c / (a * p_p2.X + b * p_p2.Y - c * pointsFloat[1].Z);      //one more mult, but one less division
-
-                        //we calculate the pixel number
-                        int pixelNr = y * _width + x;
-
-                        //lock is A LOT faster than .net Spinlock. Same speed as my AsyncStuff.Spinlock
-                        //Using this lock loses around 10fps but is necessary to avoid artifacts
-                        lock (_pixelLocks[pixelNr])
-                        {
-                            if (invertedInterZ > _zBuffer[pixelNr])       //we're now using the interpolated Z
-                            {
-                                _zBuffer[pixelNr] = invertedInterZ;
-
-                                int pixelStartingByte = pixelNr * Stride;
-
-                                _data[pixelStartingByte] = fragmentColor.B;
-                                _data[pixelStartingByte + 1] = fragmentColor.G;
-                                _data[pixelStartingByte + 2] = fragmentColor.R;
-                                //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
-                            }
-                        }
-                    }
-
-                    fromX += fromMinDX;
-                    toX += fromMaxDX;
-                }
-
-            }
-
-
-
-
-
         }
 
         public void Clear()
