@@ -15,13 +15,11 @@ using System.Windows.Threading;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Text;
-using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Reflection;
 using System.IO;
 using System.Globalization;
 using PointF = System.Drawing.PointF;
-using DrawingColor = System.Drawing.Color;
 using System.Windows.Media.Imaging;
 
 namespace _3dGraphics
@@ -332,7 +330,7 @@ namespace _3dGraphics
             Vector2 t3 = texels[tempTri.T3Index];
 
             int colorLevel = (int)(tempTri.LightIntensity * 255);
-            DrawingColor col = DrawingColor.FromArgb(colorLevel, colorLevel, colorLevel);
+            Color col = Color.FromRgb(colorLevel, colorLevel, colorLevel);
 
             Fragment3D frag = new Fragment3D(new Vector3(v1.X, v1.Y, v1.Z), new Vector3(v2.X, v2.Y, v2.Z), new Vector3(v3.X, v3.Y, v3.Z), t1, t2, t3, col);
 

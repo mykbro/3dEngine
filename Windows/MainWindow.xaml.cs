@@ -19,8 +19,7 @@ namespace _3dGraphics.Windows
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
-    {
-        private readonly DrawingPen[] _pens;
+    {     
         private readonly WriteableBitmap _wBmp; 
 
         //translations
@@ -98,16 +97,8 @@ namespace _3dGraphics.Windows
             _plusPressedCmd= plusPressedCmd;
             _plusReleasedCmd= plusReleasedCmd;
             _minusPressedCmd= minusPressedCmd;
-            _minusReleasedCmd = minusReleasedCmd;
+            _minusReleasedCmd = minusReleasedCmd;            
             
-            // populating pen cache
-            _pens = new DrawingPen[256];
-            for(int i=0; i<256; i++)
-            {
-                System.Drawing.Color temp = System.Drawing.Color.FromArgb(i, i, i);
-                _pens[i] = new DrawingPen(temp);
-            }           
-
             //
             InitializeComponent();
 
@@ -137,11 +128,13 @@ namespace _3dGraphics.Windows
 
             //System.Drawing.Color penColor = System.Drawing.Color.FromArgb(grayLevel, grayLevel, grayLevel);
             //DrawingPen renderPen = new DrawingPen(penColor);
+            /*
             DrawingPen renderPen = _pens[grayLevel];
            
             g.DrawLine(renderPen, f.P1, f.P2);          
             g.DrawLine(renderPen, f.P2, f.P3);           
             g.DrawLine(renderPen, f.P3, f.P1);  
+            */
         }
 
 

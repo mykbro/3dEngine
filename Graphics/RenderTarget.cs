@@ -170,8 +170,7 @@ namespace _3dGraphics.Graphics
                     float texelY = v * t1.Y + u * t2.Y + w * t3.Y;
 
                     //we sample the texture
-                    Color pointColor = texture.GetColorNormalizedCoords(texelX, texelY);
-
+                    Color pointColor = texture.GetColorNormalizedCoords(texelX, texelY);                   
 
                     //we calculate the pixel number
                     int pixelNr = y * _width + x;

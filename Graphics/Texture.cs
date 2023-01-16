@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Drawing;
 using System.Windows.Media.Imaging;
 
 namespace _3dGraphics.Graphics
@@ -33,7 +32,7 @@ namespace _3dGraphics.Graphics
         public Color GetColor(int x, int y)
         {
             int pixelNr = (_height * y + x) * _bytesPerPixels;
-            return Color.FromArgb(_data[pixelNr+2], _data[pixelNr+1], _data[pixelNr]);
+            return new Color(255, _data[pixelNr+2], _data[pixelNr+1], _data[pixelNr]);
         }
 
         public Color GetColorNormalizedCoords(float u, float v)
