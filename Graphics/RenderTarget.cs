@@ -20,25 +20,29 @@ namespace _3dGraphics.Graphics
 
         public int Width => _width;
         public int Height => _height;
-        public int Stride => 4;
+        public int PixelStride => 4;
         public byte[] Data => _data;
 
         public RenderTarget(int width, int height)
         {
             _width = width;
             _height = height;
-            _data = new byte[width * height * Stride];
+            _data = new byte[width * height * PixelStride];
             _zBuffer = new float[width * height];
             _pixelLocks = new Object[width * height];
 
             InitPixelLocks();
         }
 
-        public void RenderFragment(Fragment3D fragment)
+        public void RenderFragment(Fragment3D fragment, Texture texture)
         {
             Vector3 p1 = fragment.P1;
             Vector3 p2 = fragment.P2;
             Vector3 p3 = fragment.P3;
+            
+            Vector2 t1  = fragment.T1;
+            Vector2 t2 = fragment.T2;
+            Vector2 t3 = fragment.T3;
 
             //we determine the screen area we need to check by calculating the rectangle that contains the triangle (we're not checking the whole screen...)
             int maxX = (int) Math.Max(Math.Max(p1.X, p2.X), p3.X);
@@ -155,14 +159,18 @@ namespace _3dGraphics.Graphics
                     //we calculate the barycentric coords
                     float d20 = p_p2.X * p1_p2.X + p_p2.Y * p1_p2.Y;
                     float d21 = p_p2.X * p3_p2.X + p_p2.Y * p3_p2.Y;
-                    
+
                     float v = (d11 * d20 - d01 * d21) * invDenom;           //equivalent to P1
                     float w = (d00 * d21 - d01 * d20) * invDenom;           //equivalent to P3
                     float u = 1.0f - v - w;                                 //equivalent to P2
-
+                    
                     //we interpolate the texture coordinates
+                    //Vector2 pointTexel = v * t1 + u * t2 + w * t3;
+                    float texelX = v * t1.X + u * t2.X + w * t3.X;
+                    float texelY = v * t1.Y + u * t2.Y + w * t3.Y;
 
-
+                    //we sample the texture
+                    Color pointColor = texture.GetColorNormalizedCoords(texelX, texelY);
 
 
                     //we calculate the pixel number
@@ -176,11 +184,11 @@ namespace _3dGraphics.Graphics
                         {
                             _zBuffer[pixelNr] = invertedInterZ;
 
-                            int pixelStartingByte = pixelNr * Stride;
+                            int pixelStartingByte = pixelNr * PixelStride;
 
-                            _data[pixelStartingByte] = blueLvl;
-                            _data[pixelStartingByte + 1] = greenLvl;
-                            _data[pixelStartingByte + 2] = redLvl;
+                            _data[pixelStartingByte] = pointColor.B;
+                            _data[pixelStartingByte + 1] = pointColor.G;
+                            _data[pixelStartingByte + 2] = pointColor.R;
                             //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
                         }
                     }
@@ -366,7 +374,7 @@ namespace _3dGraphics.Graphics
                         {
                             _zBuffer[pixelNr] = invertedInterZ;
 
-                            int pixelStartingByte = pixelNr * Stride;
+                            int pixelStartingByte = pixelNr * PixelStride;
 
                             _data[pixelStartingByte] = triangleColor.B;
                             _data[pixelStartingByte + 1] = triangleColor.G;
@@ -513,7 +521,7 @@ namespace _3dGraphics.Graphics
                         {
                             _zBuffer[pixelNr] = invertedInterZ;
 
-                            int pixelStartingByte = pixelNr * Stride;
+                            int pixelStartingByte = pixelNr * PixelStride;
 
                             _data[pixelStartingByte] = triangleColor.B;
                             _data[pixelStartingByte + 1] = triangleColor.G;
@@ -618,7 +626,7 @@ namespace _3dGraphics.Graphics
                 _data[i] = 0;                
             }
             */
-            _data = new byte[_width * _height * Stride];            
+            _data = new byte[_width * _height * PixelStride];            
 
             ClearZBuffer();
         }

@@ -22,7 +22,7 @@ using System.IO;
 using System.Globalization;
 using PointF = System.Drawing.PointF;
 using DrawingColor = System.Drawing.Color;
-
+using System.Windows.Media.Imaging;
 
 namespace _3dGraphics
 {
@@ -41,6 +41,7 @@ namespace _3dGraphics
         private float _fovIncrease; //0 or 1
         private float _fovDecrease; //0 or 1
         private RenderTarget _renderTarget;
+        private Texture _myTexture;
 
         private void Application_Startup(object sender, StartupEventArgs e)
         {
@@ -55,6 +56,7 @@ namespace _3dGraphics
             _console = new ConsoleWindow();
             
             CreateWorld(_mainWindow.ScreenWidth, _mainWindow.ScreenHeight);
+            LoadTexture();
             _renderTarget = new RenderTarget(_mainWindow.ScreenWidth, _mainWindow.ScreenHeight);
 
             _mainWindow.Show();
@@ -77,7 +79,7 @@ namespace _3dGraphics
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
 
             //Generate100Cubes();            
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt");
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt");
 
             _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
@@ -152,7 +154,7 @@ namespace _3dGraphics
             Dispatcher.Invoke(() =>
             {
                 //_mainWindow.DrawFragments(fragments);
-                _mainWindow.Draw(_renderTarget.Data, _renderTarget.Stride);
+                _mainWindow.Draw(_renderTarget.Data, _renderTarget.PixelStride);
                 _console.Clear();
                 _console.WriteLine(consoleText);
             }, DispatcherPriority.Background);
@@ -214,6 +216,7 @@ namespace _3dGraphics
 
             //and we extract the texels
             List<Vector2> texels = new List<Vector2>(mesh.TextureCoords);
+            texels.Add(Vector2.Zero);   //added to prevent problems with no textures
 
             //we populate the lists
             for (int vIndex = 0; vIndex < numVertices; vIndex++)
@@ -333,7 +336,7 @@ namespace _3dGraphics
 
             Fragment3D frag = new Fragment3D(new Vector3(v1.X, v1.Y, v1.Z), new Vector3(v2.X, v2.Y, v2.Z), new Vector3(v3.X, v3.Y, v3.Z), t1, t2, t3, col);
 
-            _renderTarget.RenderFragment(frag);
+            _renderTarget.RenderFragment(frag, _myTexture);
             //_renderTarget.RenderFragmentScanline(frag);
         }
 
@@ -374,16 +377,18 @@ namespace _3dGraphics
                                 int v2 = Int32.Parse(parameters2[0]);
                                 int v3 = Int32.Parse(parameters3[0]);
 
-                                int t1 = 0, t2 = 0, t3 = 0;                                
-
-                                if(parameters1.Length > 0)
+                                int t1 = 1, t2 = 1, t3 = 1;
+                                
+                                
+                                if(parameters1.Length > 1)
                                 {
                                     t1 = Int32.Parse(parameters1[1]);
                                     t2 = Int32.Parse(parameters2[1]);
                                     t3 = Int32.Parse(parameters3[1]);
-                                }                               
+                                } 
+                                                            
 
-                                triangles.Add(new Triangle(v1 - 1, v2 - 1, v3 - 1, t1, t2, t3, 1f));    //obj file indexes count from 1; we also initialize to MAX luminosity
+                                triangles.Add(new Triangle(v1 - 1, v2 - 1, v3 - 1, t1 - 1, t2 - 1, t3 - 1, 1f));    //obj file indexes count from 1; we also initialize to MAX luminosity
                                 break;
                             default:
                                 break;
@@ -394,6 +399,11 @@ namespace _3dGraphics
 
                 return new Mesh(vertices, textureCoords, triangles);
             }
+        }
+
+        private void LoadTexture()
+        {                       
+            _myTexture = new Texture(@"D:\Objs\smile.bmp"); 
         }
 
 

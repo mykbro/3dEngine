@@ -98,9 +98,9 @@ namespace _3dGraphics.Graphics
                     Vector4 newP = ClipLineToPlane(P1, P2, planeId);
                     Vector4 newQ = ClipLineToPlane(P1, P3, planeId);
                     //we add a new Triangle with P substituting P1
-                    toReturn.Add(new Triangle(vertices.Count, triangle.V2Index, triangle.V3Index, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(vertices.Count, triangle.V2Index, triangle.V3Index, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));
                     //we add another new Triangle with Q substituting P1 and P substituting P2 keeping the clockwise order
-                    toReturn.Add(new Triangle(vertices.Count+1, vertices.Count, triangle.V3Index, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(vertices.Count+1, vertices.Count, triangle.V3Index, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));
                     vertices.Add(newP);
                     vertices.Add(newQ);
                     verticesMask.Add(true);
@@ -111,8 +111,8 @@ namespace _3dGraphics.Graphics
                     Vector4 newP = ClipLineToPlane(P2, P3, planeId);
                     Vector4 newQ = ClipLineToPlane(P1, P2, planeId);
                     
-                    toReturn.Add(new Triangle(vertices.Count, triangle.V3Index, triangle.V1Index, triangle.LightIntensity));                    
-                    toReturn.Add(new Triangle(vertices.Count + 1, vertices.Count, triangle.V1Index, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(vertices.Count, triangle.V3Index, triangle.V1Index, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));                    
+                    toReturn.Add(new Triangle(vertices.Count + 1, vertices.Count, triangle.V1Index, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));
 
                     vertices.Add(newP);
                     vertices.Add(newQ);
@@ -124,8 +124,8 @@ namespace _3dGraphics.Graphics
                     Vector4 newP = ClipLineToPlane(P1, P3, planeId);
                     Vector4 newQ = ClipLineToPlane(P2, P3, planeId);
 
-                    toReturn.Add(new Triangle(vertices.Count, triangle.V1Index, triangle.V2Index, triangle.LightIntensity));
-                    toReturn.Add(new Triangle(vertices.Count + 1, vertices.Count, triangle.V2Index, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(vertices.Count, triangle.V1Index, triangle.V2Index, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(vertices.Count + 1, vertices.Count, triangle.V2Index, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));
 
                     vertices.Add(newP);
                     vertices.Add(newQ);
@@ -142,7 +142,7 @@ namespace _3dGraphics.Graphics
                     Vector4 newP3 = ClipLineToPlane(P1, P3, planeId);
                     //add the "new" triangle to the ones to return and process against the other planes but NOT to the output triangle list
                     //the V2 and V3 indexes are for the vertices we've created and going to add. This vertices will be valid even if we split the triangles even further
-                    toReturn.Add(new Triangle(triangle.V1Index, vertices.Count, vertices.Count + 1, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(triangle.V1Index, vertices.Count, vertices.Count + 1, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));
                     //we add the new vertices
                     vertices.Add(newP2);
                     vertices.Add(newP3);
@@ -154,7 +154,7 @@ namespace _3dGraphics.Graphics
                 {
                     Vector4 newP1 = ClipLineToPlane(P1, P2, planeId);
                     Vector4 newP3 = ClipLineToPlane(P2, P3, planeId);
-                    toReturn.Add(new Triangle(vertices.Count, triangle.V2Index, vertices.Count + 1, triangle.LightIntensity));                  
+                    toReturn.Add(new Triangle(vertices.Count, triangle.V2Index, vertices.Count + 1, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));                  
                     vertices.Add(newP1);
                     vertices.Add(newP3);                    
                     verticesMask.Add(true);
@@ -164,7 +164,7 @@ namespace _3dGraphics.Graphics
                 {
                     Vector4 newP1 = ClipLineToPlane(P1, P3, planeId);
                     Vector4 newP2 = ClipLineToPlane(P2, P3, planeId);                    
-                    toReturn.Add(new Triangle(vertices.Count, vertices.Count + 1, triangle.V3Index, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(vertices.Count, vertices.Count + 1, triangle.V3Index, triangle.T1Index, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));
                     vertices.Add(newP1);
                     vertices.Add(newP2);
                     verticesMask.Add(true);

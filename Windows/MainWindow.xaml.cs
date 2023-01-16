@@ -124,9 +124,9 @@ namespace _3dGraphics.Windows
 
         }     
         
-        public void Draw(byte[] data, int stride)
+        public void Draw(byte[] data, int pixelStride)
         {
-            int rowStride = stride * ScreenWidth;
+            int rowStride = pixelStride * ScreenWidth;
             _wBmp.WritePixels(new Int32Rect(0, 0, ScreenWidth, ScreenHeight), data, rowStride, 0);
             _canvas.Source = _wBmp;
         }
