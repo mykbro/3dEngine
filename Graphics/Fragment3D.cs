@@ -18,7 +18,7 @@ namespace _3dGraphics.Graphics
         private readonly Vector3 _t2;
         private readonly Vector3 _t3;
 
-        private readonly Color _color;
+        private readonly float _lightIntensity;
 
         // 
         public Vector3 P1 => _p1;
@@ -27,10 +27,10 @@ namespace _3dGraphics.Graphics
         public Vector3 T1 => _t1;
         public Vector3 T2 => _t2;
         public Vector3 T3 => _t3;
-        public Color Color => _color;
+        public float LightIntensity => _lightIntensity;
 
         //
-        public Fragment3D(Vector3 p1, Vector3 p2, Vector3 p3, Vector3 t1, Vector3 t2, Vector3 t3, Color color)
+        public Fragment3D(Vector3 p1, Vector3 p2, Vector3 p3, Vector3 t1, Vector3 t2, Vector3 t3, float lightIntensity)
         {
             _p1 = p1;
             _p2 = p2;
@@ -38,7 +38,7 @@ namespace _3dGraphics.Graphics
             _t1 = t1;
             _t2 = t2;
             _t3 = t3;
-            _color= color;
+            _lightIntensity = lightIntensity;
         }
     }
 }

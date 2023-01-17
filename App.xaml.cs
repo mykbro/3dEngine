@@ -80,7 +80,7 @@ namespace _3dGraphics
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
 
             //Generate100Cubes();            
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt");
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\dragon.txt", false);
 
             _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
@@ -105,7 +105,7 @@ namespace _3dGraphics
 
         private void Generate100Cubes()
         {
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt");
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt", true);
 
             for(int i=0; i<20; i++)
             {
@@ -336,20 +336,16 @@ namespace _3dGraphics
         {
             Vector4 v1 = vertices4D[tempTri.V1Index];
             Vector4 v2 = vertices4D[tempTri.V2Index];
-            Vector4 v3 = vertices4D[tempTri.V3Index];           
+            Vector4 v3 = vertices4D[tempTri.V3Index];  
 
-            int colorLevel = (int)(tempTri.LightIntensity * 255);
-            Color col = Color.FromRgb(colorLevel, colorLevel, colorLevel);
-
-            Fragment3D frag = new Fragment3D(Utility.Vec4ToVec3(v1), Utility.Vec4ToVec3(v2), Utility.Vec4ToVec3(v3), tempTri.T1, tempTri.T2, tempTri.T3, col);
-                                           
+            Fragment3D frag = new Fragment3D(Utility.Vec4ToVec3(v1), Utility.Vec4ToVec3(v2), Utility.Vec4ToVec3(v3), tempTri.T1, tempTri.T2, tempTri.T3, tempTri.LightIntensity);                                           
 
             _renderTarget.RenderFragment(frag, _myTexture);
             //_renderTarget.RenderFragmentScanline(frag);
         }
 
 
-        private static Mesh LoadMeshFromObjFile(string filename)
+        private static Mesh LoadMeshFromObjFile(string filename, bool useTextures)
         {
             List<Vector4> vertices = new List<Vector4>();
             List<Vector3> textureCoords = new List<Vector3>();
@@ -385,18 +381,18 @@ namespace _3dGraphics
                                 int v2 = Int32.Parse(parameters2[0]);
                                 int v3 = Int32.Parse(parameters3[0]);
 
-                                int t1 = 1, t2 = 1, t3 = 1;
-                                
-                                
-                                if(parameters1.Length > 2)
-                                {
-                                    t1 = Int32.Parse(parameters1[2]);
-                                    t2 = Int32.Parse(parameters2[2]);
-                                    t3 = Int32.Parse(parameters3[2]);
-                                }
-                                                            
+                                Vector3 t1 = Vector3.One;
+                                Vector3 t2 = Vector3.One;
+                                Vector3 t3 = Vector3.One;
 
-                                triangles.Add(new Triangle(v1 - 1, v2 - 1, v3 - 1, textureCoords[t1 - 1], textureCoords[t2 - 1], textureCoords[t3 - 1], 1f));    //obj file indexes count from 1; we also initialize to MAX luminosity
+                                if (useTextures)
+                                {                               
+                                    t1 = textureCoords[Int32.Parse(parameters1[1]) - 1];
+                                    t2 = textureCoords[Int32.Parse(parameters2[1]) - 1];
+                                    t3 = textureCoords[Int32.Parse(parameters3[1]) - 1];
+                                }                           
+
+                                triangles.Add(new Triangle(v1 - 1, v2 - 1, v3 - 1, t1, t2, t3, 1f));    //obj file indexes count from 1; we also initialize to MAX luminosity
                                 break;
                             default:
                                 break;
@@ -411,7 +407,7 @@ namespace _3dGraphics
 
         private void LoadTexture()
         {                       
-            _myTexture = new Texture(@"D:\Objs\smile.bmp"); 
+            _myTexture = new Texture(@"D:\Objs\white.bmp"); 
         }
 
 

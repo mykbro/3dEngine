@@ -72,7 +72,7 @@ namespace _3dGraphics.Graphics
             Vector3 projP3 = ProjectTo2D(p3);
 
 
-            Color fragmentColor = fragment.Color;           
+            float lightIntensity = fragment.LightIntensity;           
 
             for (int y = minY; y <= maxY; y++)
             {
@@ -194,9 +194,9 @@ namespace _3dGraphics.Graphics
 
                                 int pixelStartingByte = pixelNr * PixelStride;
 
-                                _data[pixelStartingByte] = pointColor.B;
-                                _data[pixelStartingByte + 1] = pointColor.G;
-                                _data[pixelStartingByte + 2] = pointColor.R;
+                                _data[pixelStartingByte] = (byte) (pointColor.B * lightIntensity);
+                                _data[pixelStartingByte + 1] = (byte) (pointColor.G * lightIntensity);
+                                _data[pixelStartingByte + 2] = (byte) (pointColor.R * lightIntensity);
                                 //_data[pixelStartingByte + 3] = 0;   //alpha, we spare the write
                             }
                         }
@@ -204,7 +204,7 @@ namespace _3dGraphics.Graphics
                 }                                    
             }
         }
-       
+       /*
         public void RenderFragmentScanline(Fragment3D fragment)
         {
             //BAD CONCEPT
@@ -545,7 +545,7 @@ namespace _3dGraphics.Graphics
                 //lineMaxXf -= dXFromRightToTop;
             }
         }
-
+       */
         private int HighestYPoint(Vector3[] points)
         {
             int highest = 0;
