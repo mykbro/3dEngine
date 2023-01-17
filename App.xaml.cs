@@ -278,7 +278,17 @@ namespace _3dGraphics
             for (int tIndex = 0; tIndex < trianglesToClip.Count; tIndex++)
             {
                 List<Triangle> clipResults = Clipper.ClipTriangleAndAppendNewVerticesAndTriangles(trianglesToClip[tIndex], vertices4D, verticesMask);
-                trianglesToRender.AddRange(clipResults);
+                
+                //we need to transform the texels (divide by W) while we still have a W
+                int resultCount = clipResults.Count;
+
+                for(int i = 0; i < resultCount; i++) 
+                {
+                    Triangle t = clipResults[i];
+                    Triangle transfT = new Triangle(t.V1Index, t.V2Index, t.V3Index, t.T1 / vertices4D[t.V1Index].W, t.T2 / vertices4D[t.V2Index].W, t.T3 / vertices4D[t.V3Index].W, t.LightIntensity);
+
+                    trianglesToRender.Add(transfT);
+                }
             }
 
             //division and transformation to viewport
@@ -326,7 +336,7 @@ namespace _3dGraphics
         {
             Vector4 v1 = vertices4D[tempTri.V1Index];
             Vector4 v2 = vertices4D[tempTri.V2Index];
-            Vector4 v3 = vertices4D[tempTri.V3Index];          
+            Vector4 v3 = vertices4D[tempTri.V3Index];           
 
             int colorLevel = (int)(tempTri.LightIntensity * 255);
             Color col = Color.FromRgb(colorLevel, colorLevel, colorLevel);

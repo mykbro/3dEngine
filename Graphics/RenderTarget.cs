@@ -41,9 +41,9 @@ namespace _3dGraphics.Graphics
             Vector3 p2 = fragment.P2;
             Vector3 p3 = fragment.P3;
             
-            Vector3 t1  = fragment.T1;
+            Vector3 t1 = fragment.T1;
             Vector3 t2 = fragment.T2;
-            Vector3 t3 = fragment.T3;
+            Vector3 t3 = fragment.T3;            
 
             //we determine the screen area we need to check by calculating the rectangle that contains the triangle (we're not checking the whole screen...)
             int maxX = (int) Math.Max(Math.Max(p1.X, p2.X), p3.X);
@@ -166,17 +166,22 @@ namespace _3dGraphics.Graphics
                         float d20 = p_p2.X * p1_p2.X + p_p2.Y * p1_p2.Y;
                         float d21 = p_p2.X * p3_p2.X + p_p2.Y * p3_p2.Y;
 
-                        float v = (d11 * d20 - d01 * d21) * invDenom;           //equivalent to P1
-                        float w = (d00 * d21 - d01 * d20) * invDenom;           //equivalent to P3
-                        float u = 1.0f - v - w;                                 //equivalent to P2
+                        float v = (d11 * d20 - d01 * d21) * invDenom;           //associated to P1
+                        float w = (d00 * d21 - d01 * d20) * invDenom;           //associated to P3
+                        float u = 1.0f - v - w;                                 //associated to P2
+
+                        float invertedCorrFactor = 1 / (t1.Z * v + t2.Z * u + t3.Z * w);
 
                         //we interpolate the texture coordinates
                         //Vector2 pointTexel = v * t1 + u * t2 + w * t3;
                         float texelX = v * t1.X + u * t2.X + w * t3.X;
                         float texelY = v * t1.Y + u * t2.Y + w * t3.Y;
 
+                        float perspCorrectedtX = texelX * invertedCorrFactor;
+                        float perspCorrectedtY = texelY * invertedCorrFactor;
+
                         //we sample the texture
-                        pointColor = texture.GetColorNormalizedCoords(texelX, texelY);
+                        pointColor = texture.GetColorNormalizedCoords(perspCorrectedtX, perspCorrectedtY);
 
                         //lock is A LOT faster than .net Spinlock. Same speed as my AsyncStuff.Spinlock
                         //Using this lock loses around 10fps but is necessary to avoid artifacts                  
