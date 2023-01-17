@@ -14,10 +14,10 @@ namespace _3dGraphics.Graphics
         private readonly int _v1Index;
         private readonly int _v2Index;
         private readonly int _v3Index;
-        //texel indexes associated to the points
-        private readonly int _t1Index;
-        private readonly int _t2Index;
-        private readonly int _t3Index;
+        //texel associated to the points
+        private readonly Vector3 _t1;
+        private readonly Vector3 _t2;
+        private readonly Vector3 _t3;
 
         private readonly float _lightIntensity; 
 
@@ -25,21 +25,21 @@ namespace _3dGraphics.Graphics
         public int V1Index => _v1Index;
         public int V2Index => _v2Index;
         public int V3Index => _v3Index;
-        public int T1Index => _t1Index;
-        public int T2Index => _t2Index;
-        public int T3Index => _t3Index;
+        public Vector3 T1 => _t1;
+        public Vector3 T2 => _t2;
+        public Vector3 T3 => _t3;
 
         public float LightIntensity => _lightIntensity;
 
 
-        public Triangle(int v1Index, int v2Index, int v3Index, int t1Index, int t2Index, int t3Index, float lightInt)
+        public Triangle(int v1Index, int v2Index, int v3Index, Vector3 t1, Vector3 t2, Vector3 t3, float lightInt)
         {
             _v1Index = v1Index;
             _v2Index = v2Index;
-            _v3Index = v3Index; 
-            _t1Index = t1Index;
-            _t2Index = t2Index;
-            _t3Index = t3Index;
+            _v3Index = v3Index;
+            _t1 = t1;
+            _t2 = t2;
+            _t3 = t3;
             _lightIntensity = lightInt;
         }
         

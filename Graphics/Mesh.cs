@@ -9,28 +9,24 @@ namespace _3dGraphics.Graphics
 {
     public class Mesh
     {
-        private readonly Vector3[] _vertices;
-        private readonly Vector2[] _texels;
+        private readonly Vector4[] _vertices;      
         private readonly Triangle[] _triangles;
         private readonly Vector3[] _triangleNormals;
 
         // PROPERTIES
 
-        public IEnumerable<Vector3> Vertices => _vertices;
-        public IEnumerable<Vector2> TextureCoords => _texels;
+        public IEnumerable<Vector4> Vertices => _vertices;        
         public IEnumerable<Triangle> Triangles => _triangles;
         public IEnumerable<Vector3> Normals => _triangleNormals;
 
         public int VertexCount => _vertices.Length;
-        public int TriangleCount => _triangles.Length;
-        public int TexelCount => _texels.Length;
+        public int TriangleCount => _triangles.Length;     
 
         // CONSTRUCTORS
 
-        public Mesh(IEnumerable<Vector3> vertices, IEnumerable<Vector2> textureCoords, IEnumerable<Triangle> triangles)
+        public Mesh(IEnumerable<Vector4> vertices, IEnumerable<Triangle> triangles)
         {
-            _vertices = vertices.ToArray();     //copy
-            _texels = textureCoords.ToArray();   //copy
+            _vertices = vertices.ToArray();     //copy          
             _triangles = triangles.ToArray();   //copy
 
             _triangleNormals = new Vector3[_triangles.Length];
@@ -39,23 +35,17 @@ namespace _3dGraphics.Graphics
 
         public Mesh(Mesh m)
         {
-            _vertices = m._vertices.ToArray();
-            _texels = m._texels.ToArray();
+            _vertices = m._vertices.ToArray();            
             _triangles = m._triangles.ToArray();
             _triangleNormals = m._triangleNormals.ToArray();
         }
 
         // METHODS
 
-        public Vector3 GetVertex(int index)
+        public Vector4 GetVertex(int index)
         {
             return _vertices[index];
-        }
-
-        public Vector2 GetTextureCoord(int index)
-        {
-            return _texels[index];
-        }
+        }    
         
         public Triangle GetTriangle(int index)
         {
@@ -73,8 +63,8 @@ namespace _3dGraphics.Graphics
             //we follow the clockwise vertices declaration  
             Triangle t = _triangles[triangleIndex];
 
-            Vector3 firstEdge = _vertices[t.V2Index] - _vertices[t.V1Index];
-            Vector3 secondEdge = _vertices[t.V3Index] - _vertices[t.V1Index];
+            Vector3 firstEdge = Vec4ToVec3(_vertices[t.V2Index]) - Vec4ToVec3(_vertices[t.V1Index]);
+            Vector3 secondEdge = Vec4ToVec3(_vertices[t.V3Index]) - Vec4ToVec3(_vertices[t.V1Index]);
             Vector3 crossP = Vector3.Cross(firstEdge, secondEdge);
 
             return Vector3.Normalize(crossP);
@@ -86,6 +76,11 @@ namespace _3dGraphics.Graphics
             {
                 _triangleNormals[i] = CalculateTriangleNormal(i);
             }
-        }        
+        }
+        
+        private Vector3 Vec4ToVec3(Vector4 v)
+        {
+            return new Vector3(v.X, v.Y, v.Z);
+        }
     }
 }

@@ -13,7 +13,7 @@ namespace _3dGraphics.Graphics
         private enum PlaneId { Near=0, Left=1, Far=2, Right=3, Top=4, Bottom=5 };
         private const int NumPlanes = 6;
 
-        public static List<Triangle> ClipTriangleAndAppendNewVerticesAndTriangles(Triangle triangle, List<Vector4> vertices, List<bool> verticesMask, List<Vector2> texels)
+        public static List<Triangle> ClipTriangleAndAppendNewVerticesAndTriangles(Triangle triangle, List<Vector4> vertices, List<bool> verticesMask)
         {
             
             
@@ -42,7 +42,7 @@ namespace _3dGraphics.Graphics
 
                     foreach (Triangle t in inputList)
                     {
-                        resultList.AddRange(ClipTriangleToPlane(t, (PlaneId)i, vertices, verticesMask, texels));
+                        resultList.AddRange(ClipTriangleToPlane(t, (PlaneId)i, vertices, verticesMask));
                     }
 
                     inputList = resultList;
@@ -57,7 +57,7 @@ namespace _3dGraphics.Graphics
             return inputList;
         }
 
-        private static List<Triangle> ClipTriangleToPlane(Triangle triangle, PlaneId planeId, List<Vector4> vertices, List<bool> verticesMask, List<Vector2> texels)
+        private static List<Triangle> ClipTriangleToPlane(Triangle triangle, PlaneId planeId, List<Vector4> vertices, List<bool> verticesMask)
         {
             List<Triangle> toReturn = new List<Triangle>();
 
@@ -65,9 +65,9 @@ namespace _3dGraphics.Graphics
             Vector4 P2 = vertices[triangle.V2Index];
             Vector4 P3 = vertices[triangle.V3Index];
 
-            Vector2 T1 = texels[triangle.T1Index];
-            Vector2 T2 = texels[triangle.T2Index];
-            Vector2 T3 = texels[triangle.T3Index];
+            Vector3 T1 = triangle.T1;
+            Vector3 T2 = triangle.T2;
+            Vector3 T3 = triangle.T3;
 
             //check whick point is inside
             bool P1Inside = IsInsidePlane(P1, planeId);
@@ -104,20 +104,18 @@ namespace _3dGraphics.Graphics
                     //we calculate the new texels
                     float pRatio = GetRatio(P2, P1, newP);
                     float qRatio = GetRatio(P3, P1, newQ);
-                    Vector2 pTexel = new Vector2(T2.X + pRatio * (T1.X - T2.X), T2.Y + pRatio * (T1.Y - T2.Y));
-                    Vector2 qTexel = new Vector2(T3.X + qRatio * (T1.X - T3.X), T3.Y + qRatio * (T1.Y - T3.Y));
+                    Vector3 pTexel = new Vector3(T2.X + pRatio * (T1.X - T2.X), T2.Y + pRatio * (T1.Y - T2.Y), 1f);
+                    Vector3 qTexel = new Vector3(T3.X + qRatio * (T1.X - T3.X), T3.Y + qRatio * (T1.Y - T3.Y), 1f);
 
                     //we add a new Triangle with P substituting P1
-                    toReturn.Add(new Triangle(vertices.Count, triangle.V2Index, triangle.V3Index, texels.Count, triangle.T2Index, triangle.T3Index, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(vertices.Count, triangle.V2Index, triangle.V3Index, pTexel, T2, T3, triangle.LightIntensity));
                     //we add another new Triangle with Q substituting P1 and P substituting P2 keeping the clockwise order
-                    toReturn.Add(new Triangle(vertices.Count+1, vertices.Count, triangle.V3Index, texels.Count+1, texels.Count, triangle.T3Index, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(vertices.Count+1, vertices.Count, triangle.V3Index, qTexel, pTexel, T3, triangle.LightIntensity));
                     
                     vertices.Add(newP);
                     vertices.Add(newQ);
                     verticesMask.Add(true);
-                    verticesMask.Add(true);
-                    texels.Add(pTexel);
-                    texels.Add(qTexel);
+                    verticesMask.Add(true);                  
                 }
                 else if (!P2Inside)
                 {                                     
@@ -126,19 +124,17 @@ namespace _3dGraphics.Graphics
                     //we calculate the new texels
                     float pRatio = GetRatio(P3, P2, newP);
                     float qRatio = GetRatio(P1, P2, newQ);
-                    Vector2 pTexel = new Vector2(T3.X + pRatio * (T2.X - T3.X), T3.Y + pRatio * (T2.Y - T3.Y));
-                    Vector2 qTexel = new Vector2(T1.X + qRatio * (T2.X - T1.X), T1.Y + qRatio * (T2.Y - T1.Y));
+                    Vector3 pTexel = new Vector3(T3.X + pRatio * (T2.X - T3.X), T3.Y + pRatio * (T2.Y - T3.Y), 1f);
+                    Vector3 qTexel = new Vector3(T1.X + qRatio * (T2.X - T1.X), T1.Y + qRatio * (T2.Y - T1.Y), 1f);
 
 
-                    toReturn.Add(new Triangle(vertices.Count, triangle.V3Index, triangle.V1Index, texels.Count, triangle.T3Index, triangle.T1Index, triangle.LightIntensity));                    
-                    toReturn.Add(new Triangle(vertices.Count + 1, vertices.Count, triangle.V1Index, texels.Count + 1, texels.Count, triangle.T1Index, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(vertices.Count, triangle.V3Index, triangle.V1Index, pTexel, T3, T1, triangle.LightIntensity));                    
+                    toReturn.Add(new Triangle(vertices.Count + 1, vertices.Count, triangle.V1Index, qTexel, pTexel, T1, triangle.LightIntensity));
 
                     vertices.Add(newP);
                     vertices.Add(newQ);
                     verticesMask.Add(true);
-                    verticesMask.Add(true);
-                    texels.Add(pTexel);
-                    texels.Add(qTexel);
+                    verticesMask.Add(true);                   
                 }
                 else  //P1 AND P2 inside, P3 outside
                 {
@@ -147,18 +143,16 @@ namespace _3dGraphics.Graphics
                     //we calculate the new texels
                     float pRatio = GetRatio(P1, P3, newP);
                     float qRatio = GetRatio(P2, P3, newQ);
-                    Vector2 pTexel = new Vector2(T1.X + pRatio * (T3.X - T1.X), T1.Y + pRatio * (T3.Y - T1.Y));
-                    Vector2 qTexel = new Vector2(T2.X + qRatio * (T3.X - T2.X), T2.Y + qRatio * (T3.Y - T2.Y));
+                    Vector3 pTexel = new Vector3(T1.X + pRatio * (T3.X - T1.X), T1.Y + pRatio * (T3.Y - T1.Y), 1f);
+                    Vector3 qTexel = new Vector3(T2.X + qRatio * (T3.X - T2.X), T2.Y + qRatio * (T3.Y - T2.Y), 1f);
 
-                    toReturn.Add(new Triangle(vertices.Count, triangle.V1Index, triangle.V2Index, texels.Count, triangle.T1Index, triangle.T2Index, triangle.LightIntensity));
-                    toReturn.Add(new Triangle(vertices.Count + 1, vertices.Count, triangle.V2Index, texels.Count + 1, texels.Count, triangle.T2Index, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(vertices.Count, triangle.V1Index, triangle.V2Index, pTexel, T1, T2, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(vertices.Count + 1, vertices.Count, triangle.V2Index, qTexel, pTexel, T2, triangle.LightIntensity));
 
                     vertices.Add(newP);
                     vertices.Add(newQ);
                     verticesMask.Add(true);
-                    verticesMask.Add(true);
-                    texels.Add(pTexel);
-                    texels.Add(qTexel);
+                    verticesMask.Add(true);                   
                 }
             }
             else if(numPointsInside == 1)
@@ -171,21 +165,18 @@ namespace _3dGraphics.Graphics
                     //we calculate the new texel
                     float pRatio = GetRatio(P1, P2, newP2);
                     float qRatio = GetRatio(P1, P3, newP3);
-                    Vector2 pTexel = new Vector2(T1.X + pRatio * (T2.X - T1.X), T1.Y + pRatio * (T2.Y - T1.Y));
-                    Vector2 qTexel = new Vector2(T1.X + qRatio * (T3.X - T1.X), T1.Y + qRatio * (T3.Y - T1.Y));
+                    Vector3 pTexel = new Vector3(T1.X + pRatio * (T2.X - T1.X), T1.Y + pRatio * (T2.Y - T1.Y), 1f);
+                    Vector3 qTexel = new Vector3(T1.X + qRatio * (T3.X - T1.X), T1.Y + qRatio * (T3.Y - T1.Y), 1f);
 
                     //add the "new" triangle to the ones to return and process against the other planes but NOT to the output triangle list
                     //the V2 and V3 indexes are for the vertices we've created and going to add. This vertices will be valid even if we split the triangles even further
-                    toReturn.Add(new Triangle(triangle.V1Index, vertices.Count, vertices.Count + 1, triangle.T1Index, texels.Count, texels.Count + 1, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(triangle.V1Index, vertices.Count, vertices.Count + 1, T1, pTexel, qTexel, triangle.LightIntensity));
                     //we add the new vertices
                     vertices.Add(newP2);
                     vertices.Add(newP3);
                     //and we mark them as valid to process further
                     verticesMask.Add(true);
-                    verticesMask.Add(true);
-                    //and we add the texels
-                    texels.Add(pTexel);
-                    texels.Add(qTexel);
+                    verticesMask.Add(true);                   
                 }
                 else if(P2Inside)
                 {
@@ -194,17 +185,15 @@ namespace _3dGraphics.Graphics
                     //
                     float pRatio = GetRatio(P2, P1, newP1);
                     float qRatio = GetRatio(P2, P3, newP3);
-                    Vector2 pTexel = new Vector2(T2.X + pRatio * (T1.X - T2.X), T2.Y + pRatio * (T1.Y - T2.Y));
-                    Vector2 qTexel = new Vector2(T2.X + qRatio * (T3.X - T2.X), T2.Y + qRatio * (T3.Y - T2.Y));
+                    Vector3 pTexel = new Vector3(T2.X + pRatio * (T1.X - T2.X), T2.Y + pRatio * (T1.Y - T2.Y), 1f);
+                    Vector3 qTexel = new Vector3(T2.X + qRatio * (T3.X - T2.X), T2.Y + qRatio * (T3.Y - T2.Y), 1f);
 
-                    toReturn.Add(new Triangle(vertices.Count, triangle.V2Index, vertices.Count + 1, texels.Count, triangle.T2Index, texels.Count + 1, triangle.LightIntensity));                  
+                    toReturn.Add(new Triangle(vertices.Count, triangle.V2Index, vertices.Count + 1, pTexel, T2, qTexel, triangle.LightIntensity));                  
                     
                     vertices.Add(newP1);
                     vertices.Add(newP3);                    
                     verticesMask.Add(true);
-                    verticesMask.Add(true);
-                    texels.Add(pTexel);
-                    texels.Add(qTexel);
+                    verticesMask.Add(true);                
                 }
                 else    //P3 inside
                 {
@@ -213,16 +202,14 @@ namespace _3dGraphics.Graphics
                     //
                     float pRatio = GetRatio(P3, P1, newP1);
                     float qRatio = GetRatio(P3, P2, newP2);
-                    Vector2 pTexel = new Vector2(T3.X + pRatio * (T1.X - T3.X), T3.Y + pRatio * (T1.Y - T3.Y));
-                    Vector2 qTexel = new Vector2(T3.X + qRatio * (T2.X - T3.X), T3.Y + qRatio * (T2.Y - T3.Y));
+                    Vector3 pTexel = new Vector3(T3.X + pRatio * (T1.X - T3.X), T3.Y + pRatio * (T1.Y - T3.Y), 1f);
+                    Vector3 qTexel = new Vector3(T3.X + qRatio * (T2.X - T3.X), T3.Y + qRatio * (T2.Y - T3.Y), 1f);
 
-                    toReturn.Add(new Triangle(vertices.Count, vertices.Count + 1, triangle.V3Index, texels.Count, texels.Count + 1, triangle.T3Index, triangle.LightIntensity));
+                    toReturn.Add(new Triangle(vertices.Count, vertices.Count + 1, triangle.V3Index, pTexel, qTexel, T3, triangle.LightIntensity));
                     vertices.Add(newP1);
                     vertices.Add(newP2);
                     verticesMask.Add(true);
                     verticesMask.Add(true);
-                    texels.Add(pTexel);
-                    texels.Add(qTexel);
                 }
             }
             else    //no points inside

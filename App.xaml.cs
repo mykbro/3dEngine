@@ -41,6 +41,9 @@ namespace _3dGraphics
         private RenderTarget _renderTarget;
         private Texture _myTexture;
 
+        private const float ONE_THIRD = 1 / 3f;
+        
+        
         private void Application_Startup(object sender, StartupEventArgs e)
         {
 
@@ -76,10 +79,10 @@ namespace _3dGraphics
             //we create the world and populate it with objects
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
 
-            Generate100Cubes();            
-            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt");
+            //Generate100Cubes();            
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt");
 
-            //_world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
+            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(0f, 0f, 10f), 1f));
@@ -200,8 +203,7 @@ namespace _3dGraphics
         {            
             Mesh mesh = wObject.Mesh;                       //store to avoid repetitive calls
             int numVertices = mesh.VertexCount;             //store to avoid repetitive calls
-            int numTriangles = mesh.TriangleCount;          //store to avoid repetitive calls
-            int numTexels = mesh.TexelCount;                //store to avoid repetitive calls
+            int numTriangles = mesh.TriangleCount;          //store to avoid repetitive calls           
 
             //we create an empty List of Vector4 sized to the total nr of Vertices...
             //we'll fill it all but we'll avoid relocations and we're going to create new Vertices during the Clipping stage so an Array would not work
@@ -210,18 +212,14 @@ namespace _3dGraphics
             List<bool> verticesMask = new List<bool>(numVertices);
            
             //we also create a list for the Triangles that we want to clip sizing it to TriangleCount... we'll probably fill half of it
-            List<Triangle> trianglesToClip = new List<Triangle>(numTriangles);
+            List<Triangle> trianglesToClip = new List<Triangle>(numTriangles); 
 
-            //and we extract the texels
-            List<Vector2> texels = new List<Vector2>(mesh.TextureCoords);
-            texels.Add(Vector2.Zero);   //added to prevent problems with no textures
-
-            //we populate the lists
+            //we populate the lists adding the W coordinate
             for (int vIndex = 0; vIndex < numVertices; vIndex++)
             {
-                vertices4D.Add(new Vector4(mesh.GetVertex(vIndex), 1f));
+                vertices4D.Add(mesh.GetVertex(vIndex));
                 verticesMask.Add(false);
-            }
+            }           
 
             //we transform the camera from World to Object space for backface culling and illumination using normals 
             Matrix4x4 worldToLocalMatrix = wObject.WorldToLocalMatrix;
@@ -231,14 +229,19 @@ namespace _3dGraphics
             for (int tIndex = 0; tIndex < numTriangles; tIndex++)
             {
                 Triangle tempTriangle = mesh.GetTriangle(tIndex);
-                Vector3 triangleBarycenter = (mesh.GetVertex(tempTriangle.V1Index) + mesh.GetVertex(tempTriangle.V2Index) + mesh.GetVertex(tempTriangle.V3Index)) / 3f;
+
+                Vector3 v1 = Utility.Vec4ToVec3(vertices4D[tempTriangle.V1Index]);
+                Vector3 v2 = Utility.Vec4ToVec3(vertices4D[tempTriangle.V2Index]);
+                Vector3 v3 = Utility.Vec4ToVec3(vertices4D[tempTriangle.V3Index]);
+
+                Vector3 triangleBarycenter = (v1 + v2 + v3) * ONE_THIRD;
                 Vector3 pointToCameraVec = cameraPosInObjSpace - triangleBarycenter;
                 Vector3 pointToCameraVecNormalized = Vector3.Normalize(pointToCameraVec);
                 float scalarProd = Vector3.Dot(pointToCameraVecNormalized, mesh.GetNormal(tIndex));
 
                 if (scalarProd > 0)
                 {
-                    trianglesToClip.Add(new Triangle(tempTriangle.V1Index, tempTriangle.V2Index, tempTriangle.V3Index, tempTriangle.T1Index, tempTriangle.T2Index, tempTriangle.T3Index, scalarProd));    //we calculate the illumination                        
+                    trianglesToClip.Add(new Triangle(tempTriangle.V1Index, tempTriangle.V2Index, tempTriangle.V3Index, tempTriangle.T1, tempTriangle.T2, tempTriangle.T3, scalarProd));    //we calculate the illumination                        
                     verticesMask[tempTriangle.V1Index] = true;
                     verticesMask[tempTriangle.V2Index] = true;
                     verticesMask[tempTriangle.V3Index] = true;
@@ -274,7 +277,7 @@ namespace _3dGraphics
             //triangle clipping
             for (int tIndex = 0; tIndex < trianglesToClip.Count; tIndex++)
             {
-                List<Triangle> clipResults = Clipper.ClipTriangleAndAppendNewVerticesAndTriangles(trianglesToClip[tIndex], vertices4D, verticesMask, texels);
+                List<Triangle> clipResults = Clipper.ClipTriangleAndAppendNewVerticesAndTriangles(trianglesToClip[tIndex], vertices4D, verticesMask);
                 trianglesToRender.AddRange(clipResults);
             }
 
@@ -308,7 +311,7 @@ namespace _3dGraphics
                 _renderTarget.RenderFragment(frag);
             }
             */
-            Parallel.ForEach(trianglesToRender, (t) => RenderFragment(t, vertices4D, texels));
+            Parallel.ForEach(trianglesToRender, (t) => RenderFragment(t, vertices4D));
 
             lock (debugInfo)
             {
@@ -319,20 +322,17 @@ namespace _3dGraphics
             }        
         }
 
-        private void RenderFragment(Triangle tempTri, List<Vector4> vertices4D, List<Vector2> texels)
+        private void RenderFragment(Triangle tempTri, List<Vector4> vertices4D)
         {
             Vector4 v1 = vertices4D[tempTri.V1Index];
             Vector4 v2 = vertices4D[tempTri.V2Index];
-            Vector4 v3 = vertices4D[tempTri.V3Index];
-
-            Vector2 t1 = texels[tempTri.T1Index];
-            Vector2 t2 = texels[tempTri.T2Index];
-            Vector2 t3 = texels[tempTri.T3Index];
+            Vector4 v3 = vertices4D[tempTri.V3Index];          
 
             int colorLevel = (int)(tempTri.LightIntensity * 255);
             Color col = Color.FromRgb(colorLevel, colorLevel, colorLevel);
 
-            Fragment3D frag = new Fragment3D(new Vector3(v1.X, v1.Y, v1.Z), new Vector3(v2.X, v2.Y, v2.Z), new Vector3(v3.X, v3.Y, v3.Z), t1, t2, t3, col);
+            Fragment3D frag = new Fragment3D(Utility.Vec4ToVec3(v1), Utility.Vec4ToVec3(v2), Utility.Vec4ToVec3(v3), tempTri.T1, tempTri.T2, tempTri.T3, col);
+                                           
 
             _renderTarget.RenderFragment(frag, _myTexture);
             //_renderTarget.RenderFragmentScanline(frag);
@@ -341,8 +341,8 @@ namespace _3dGraphics
 
         private static Mesh LoadMeshFromObjFile(string filename)
         {
-            List<Vector3> vertices = new List<Vector3>();
-            List<Vector2> textureCoords = new List<Vector2>();
+            List<Vector4> vertices = new List<Vector4>();
+            List<Vector3> textureCoords = new List<Vector3>();
             List<Triangle> triangles = new List<Triangle>();
 
             using (FileStream fs = File.OpenRead(filename))
@@ -359,12 +359,12 @@ namespace _3dGraphics
                                 float x = float.Parse(parts[1], CultureInfo.InvariantCulture);
                                 float y = float.Parse(parts[2], CultureInfo.InvariantCulture);
                                 float z = float.Parse(parts[3], CultureInfo.InvariantCulture);
-                                vertices.Add(new Vector3(x, y, z));
+                                vertices.Add(new Vector4(x, y, z, 1f));
                                 break;
                             case "vt":
                                 float u = float.Parse(parts[1], CultureInfo.InvariantCulture);
                                 float v = float.Parse(parts[2], CultureInfo.InvariantCulture);
-                                textureCoords.Add(new Vector2(u, v));
+                                textureCoords.Add(new Vector3(u, v, 1f));
                                 break;
                             case "f":
                                 string[] parameters1 = parts[1].Split('/');
@@ -386,7 +386,7 @@ namespace _3dGraphics
                                 }
                                                             
 
-                                triangles.Add(new Triangle(v1 - 1, v2 - 1, v3 - 1, t1 - 1, t2 - 1, t3 - 1, 1f));    //obj file indexes count from 1; we also initialize to MAX luminosity
+                                triangles.Add(new Triangle(v1 - 1, v2 - 1, v3 - 1, textureCoords[t1 - 1], textureCoords[t2 - 1], textureCoords[t3 - 1], 1f));    //obj file indexes count from 1; we also initialize to MAX luminosity
                                 break;
                             default:
                                 break;
@@ -395,13 +395,13 @@ namespace _3dGraphics
                     }
                 }
 
-                return new Mesh(vertices, textureCoords, triangles);
+                return new Mesh(vertices, triangles);
             }
         }
 
         private void LoadTexture()
         {                       
-            _myTexture = new Texture(@"D:\Objs\smile.png"); 
+            _myTexture = new Texture(@"D:\Objs\smile.bmp"); 
         }
 
 

@@ -41,9 +41,9 @@ namespace _3dGraphics.Graphics
             Vector3 p2 = fragment.P2;
             Vector3 p3 = fragment.P3;
             
-            Vector2 t1  = fragment.T1;
-            Vector2 t2 = fragment.T2;
-            Vector2 t3 = fragment.T3;
+            Vector3 t1  = fragment.T1;
+            Vector3 t2 = fragment.T2;
+            Vector3 t3 = fragment.T3;
 
             //we determine the screen area we need to check by calculating the rectangle that contains the triangle (we're not checking the whole screen...)
             int maxX = (int) Math.Max(Math.Max(p1.X, p2.X), p3.X);
@@ -158,6 +158,7 @@ namespace _3dGraphics.Graphics
                     int pixelNr = y * _width + x;
 
                     //we calculate the barycentric coords with a speculative double-check to avoid wasting time if we're already behind
+                    //we take the second locked check only if the first succeeded
                     Color pointColor = new Color();                  
 
                     if (invertedInterZ > _zBuffer[pixelNr])
