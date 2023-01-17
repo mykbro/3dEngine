@@ -7,7 +7,7 @@ using System.Numerics;
 
 namespace _3dGraphics.Graphics
 {
-    internal struct DoubleVector3
+    internal readonly struct DoubleVector3
     {
         private readonly Vector<double> _v;
 

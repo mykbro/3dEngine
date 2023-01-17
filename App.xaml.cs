@@ -80,7 +80,7 @@ namespace _3dGraphics
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
 
             //Generate100Cubes();            
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\dragon.txt", false);
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt", false);
 
             _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
@@ -303,24 +303,6 @@ namespace _3dGraphics
                 }
             }
 
-            //creating the fragments to display
-            /*
-            for (int tIndex = 0; tIndex < trianglesToRender.Count; tIndex++)
-            {
-                Triangle tempTri = trianglesToRender[tIndex];
-
-                Vector4 v1 = vertices4D[tempTri.V1Index];
-                Vector4 v2 = vertices4D[tempTri.V2Index];
-                Vector4 v3 = vertices4D[tempTri.V3Index];
-
-                int colorLevel = (int)(tempTri.LightIntensity * 255);
-                DrawingColor col = DrawingColor.FromArgb(colorLevel, colorLevel, colorLevel);
-
-                Fragment3D frag = new Fragment3D(new Vector3(v1.X, v1.Y, v1.Z), new Vector3(v2.X, v2.Y, v2.Z), new Vector3(v3.X, v3.Y, v3.Z), col);
-
-                _renderTarget.RenderFragment(frag);
-            }
-            */
             Parallel.ForEach(trianglesToRender, (t) => RenderFragment(t, vertices4D));
 
             lock (debugInfo)

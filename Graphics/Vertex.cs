@@ -8,7 +8,7 @@ using System.Windows.Media.Media3D;
 
 namespace _3dGraphics.Graphics
 {
-    public struct Vertex
+    public readonly struct Vertex
     {
         private readonly Vector3 _position;
 

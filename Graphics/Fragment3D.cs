@@ -8,7 +8,7 @@ using System.Numerics;
 
 namespace _3dGraphics.Graphics
 {
-    public struct Fragment3D
+    public class Fragment3D
     {
         private readonly Vector3 _p1;
         private readonly Vector3 _p2;

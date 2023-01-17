@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace _3dGraphics.Graphics
 {
-    public struct Color
+    public readonly struct Color
     {
         private readonly byte _alpha;
         private readonly byte _red;

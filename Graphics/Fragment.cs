@@ -8,7 +8,7 @@ using System.Drawing;
 
 namespace _3dGraphics.Graphics
 {
-    public struct Fragment
+    public readonly struct Fragment
     {
         private readonly PointF _p1;
         private readonly PointF _p2;
