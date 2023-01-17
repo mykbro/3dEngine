@@ -42,6 +42,8 @@ namespace _3dGraphics
         private float _fovDecrease; //0 or 1
         private RenderTarget _renderTarget;
 
+        private const float ONE_THIRD = 1 / 3f;
+
         private void Application_Startup(object sender, StartupEventArgs e)
         {
 
@@ -77,7 +79,7 @@ namespace _3dGraphics
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
 
             //Generate100Cubes();            
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt"); 
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\dragon.txt"); 
 
             _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
@@ -224,9 +226,11 @@ namespace _3dGraphics
 
             //...and we check each mesh's triangle asserting the vertices' flags and adding the triangle to the processTriangles list
             for (int tIndex = 0; tIndex < numTriangles; tIndex++)
-            {
+            {                
+                
+                
                 Triangle tempTriangle = mesh.GetTriangle(tIndex);
-                Vector3 triangleBarycenter = (mesh.GetVertex(tempTriangle.V1Index).Position3D + mesh.GetVertex(tempTriangle.V2Index).Position3D + mesh.GetVertex(tempTriangle.V3Index).Position3D) / 3f;
+                Vector3 triangleBarycenter = (mesh.GetVertex(tempTriangle.V1Index).Position3D + mesh.GetVertex(tempTriangle.V2Index).Position3D + mesh.GetVertex(tempTriangle.V3Index).Position3D) * ONE_THIRD;
                 Vector3 pointToCameraVec = cameraPosInObjSpace - triangleBarycenter;
                 Vector3 pointToCameraVecNormalized = Vector3.Normalize(pointToCameraVec);
                 float scalarProd = Vector3.Dot(pointToCameraVecNormalized, mesh.GetNormal(tIndex));
@@ -284,25 +288,7 @@ namespace _3dGraphics
                     vertices4D[vIndex] = Vector4.Transform(dividedVertex, viewportMatrix);
                 }
             }
-
-            //creating the fragments to display
-            /*
-            for (int tIndex = 0; tIndex < trianglesToRender.Count; tIndex++)
-            {
-                Triangle tempTri = trianglesToRender[tIndex];
-
-                Vector4 v1 = vertices4D[tempTri.V1Index];
-                Vector4 v2 = vertices4D[tempTri.V2Index];
-                Vector4 v3 = vertices4D[tempTri.V3Index];
-
-                int colorLevel = (int)(tempTri.LightIntensity * 255);
-                DrawingColor col = DrawingColor.FromArgb(colorLevel, colorLevel, colorLevel);
-
-                Fragment3D frag = new Fragment3D(new Vector3(v1.X, v1.Y, v1.Z), new Vector3(v2.X, v2.Y, v2.Z), new Vector3(v3.X, v3.Y, v3.Z), col);
-
-                _renderTarget.RenderFragment(frag);
-            }
-            */
+            
             Parallel.ForEach(trianglesToRender, (t) => RenderFragment(t, vertices4D));
 
             lock (debugInfo)
@@ -325,7 +311,7 @@ namespace _3dGraphics
 
             Fragment3D frag = new Fragment3D(new Vector3(v1.X, v1.Y, v1.Z), new Vector3(v2.X, v2.Y, v2.Z), new Vector3(v3.X, v3.Y, v3.Z), col);
 
-            _renderTarget.RenderFragment2(frag);
+            _renderTarget.RenderFragment(frag);
             //_renderTarget.RenderFragmentUsingScanLine(frag);
         }
 
