@@ -137,9 +137,14 @@ namespace _3dGraphics
             OBBox meshBox = new OBBox(wObject.Mesh.AABoundingBox);
             OBBox projectedBox = OBBox.TranformOBBox(localToProj, meshBox);
 
-            if(Culler.IsOBBoxInsideClipSpace(projectedBox) != CullResult.Outside)
+            //we pass the wObject to the culler
+            CullResult objectVisibility = Culler.IsOBBoxInsideClipSpace(projectedBox);
+
+            if (objectVisibility != CullResult.Outside)
             {
-                RenderObject(wObject, localToProj, viewportMatrix, debugInfo);
+                //if the object is partially visible we can skip che clipping stage when rendering
+                bool needClipping = (objectVisibility == CullResult.Partial);
+                RenderObject(wObject, localToProj, viewportMatrix, debugInfo, needClipping);
             }
         }
 
@@ -156,9 +161,9 @@ namespace _3dGraphics
             //we clear our RenderTarget for the new pass
             _renderTarget.Clear();
 
-            //we render each object concurrently (every task will also render each fragment concurrently)
-            Parallel.ForEach(_world.Objects, (wObj) => CullAndRenderObject(wObj, worldToProj, viewportMatrix, debugInfo));            
-
+            //we render each object concurrently (every task will also render each fragment concurrently)            
+            Parallel.ForEach(_world.Objects, (wObj) => CullAndRenderObject(wObj, worldToProj, viewportMatrix, debugInfo));
+           
             //preparing text to display in the console
             StringBuilder consoleSB = new StringBuilder();
             consoleSB.AppendLine(String.Format("X: {0:F3}", _world.Camera.Position.X));
@@ -226,7 +231,7 @@ namespace _3dGraphics
             }
         }       
 
-        private void RenderObject(WorldObject wObject, Matrix4x4 localToProj, Matrix4x4 viewportMatrix, DebugInfo debugInfo) 
+        private void RenderObject(WorldObject wObject, Matrix4x4 localToProj, Matrix4x4 viewportMatrix, DebugInfo debugInfo, bool needClipping) 
         {            
             Mesh mesh = wObject.Mesh;                       //store to avoid repetitive calls
             int numVertices = mesh.VertexCount;             //store to avoid repetitive calls
@@ -299,21 +304,36 @@ namespace _3dGraphics
             List<Triangle> trianglesToRender = new List<Triangle>(numTrianglesToClip);
 
             //triangle clipping
-            for (int tIndex = 0; tIndex < numTrianglesToClip; tIndex++)
+            if (needClipping)
             {
-                List<Triangle> clipResults = Clipper.ClipTriangleAndAppendNewVerticesAndTriangles(trianglesToClip[tIndex], vertices4D, verticesMask);
-                
-                //we need to transform the texels (divide by W) while we still have a W
-                int resultCount = clipResults.Count;
-
-                for(int i = 0; i < resultCount; i++) 
+                for (int tIndex = 0; tIndex < numTrianglesToClip; tIndex++)
                 {
-                    Triangle t = clipResults[i];
+                    List<Triangle> clipResults = Clipper.ClipTriangleAndAppendNewVerticesAndTriangles(trianglesToClip[tIndex], vertices4D, verticesMask);
+
+                    //we need to transform the texels (divide by W) while we still have a W
+                    int resultCount = clipResults.Count;
+
+                    for (int i = 0; i < resultCount; i++)
+                    {
+                        Triangle t = clipResults[i];
+                        Triangle transfT = new Triangle(t.V1Index, t.V2Index, t.V3Index, t.T1 / vertices4D[t.V1Index].W, t.T2 / vertices4D[t.V2Index].W, t.T3 / vertices4D[t.V3Index].W, t.LightIntensity);
+
+                        trianglesToRender.Add(transfT);
+                    }
+                }
+            }
+            else
+            {
+                //we still have to trasform every triangle
+                for(int i=0; i < numTrianglesToClip; i++)
+                {
+                    Triangle t = trianglesToClip[i];
                     Triangle transfT = new Triangle(t.V1Index, t.V2Index, t.V3Index, t.T1 / vertices4D[t.V1Index].W, t.T2 / vertices4D[t.V2Index].W, t.T3 / vertices4D[t.V3Index].W, t.LightIntensity);
 
                     trianglesToRender.Add(transfT);
                 }
-            }            
+            }
+             
             //here we can free trianglesToClip            
             trianglesToClip = null;            
 
@@ -344,13 +364,14 @@ namespace _3dGraphics
 
         private void RenderFragment(Triangle tempTri, List<Vector4> vertices4D)
         {
+            
             Vector4 v1 = vertices4D[tempTri.V1Index];
             Vector4 v2 = vertices4D[tempTri.V2Index];
-            Vector4 v3 = vertices4D[tempTri.V3Index];  
+            Vector4 v3 = vertices4D[tempTri.V3Index];
 
-            Fragment3D frag = new Fragment3D(Utility.Vec4ToVec3(v1), Utility.Vec4ToVec3(v2), Utility.Vec4ToVec3(v3), tempTri.T1, tempTri.T2, tempTri.T3, tempTri.LightIntensity);                                           
-
+            Fragment3D frag = new Fragment3D(Utility.Vec4ToVec3(v1), Utility.Vec4ToVec3(v2), Utility.Vec4ToVec3(v3), tempTri.T1, tempTri.T2, tempTri.T3, tempTri.LightIntensity);
             _renderTarget.RenderFragment(frag, _myTexture);
+            
             //_renderTarget.RenderFragmentScanline(frag);
         }        
 

@@ -16,19 +16,39 @@ namespace _3dGraphics.Graphics
         public static CullResult IsOBBoxInsideClipSpace(OBBox box)
         {
             Vector4[] boxPoints = box.Points;
-
-            CullResult result = CullResult.Outside;
-            bool foundOutsidePlane = false; 
             
+            bool outsideOnePlane = false;
+            bool partialOnePlane = false;
+
             //if we found an outside result for a plane we can immediately return, otherwise we need to continue until we found an outside result
-            //if at the end we're still inside we can say that we're totally inside
-            for (int i = 0; i < NumPlanes && !foundOutsidePlane; i++)
+            //if at the end we've always been inside we can say that we're totally inside
+            for (int i = 0; i < NumPlanes && !outsideOnePlane; i++)
             {
-                result = IsOBBoxInsidePlane(boxPoints, (PlaneId) i);
-                foundOutsidePlane = (result == CullResult.Outside);                
+                CullResult result = IsOBBoxInsidePlane(boxPoints, (PlaneId) i);
+                
+                switch (result)
+                {
+                    case CullResult.Outside:
+                        outsideOnePlane = true;
+                        break;
+                    case CullResult.Partial:
+                        partialOnePlane = true;
+                        break;                   
+                }                             
             }
 
-            return result;
+            if (outsideOnePlane)
+            {
+                return CullResult.Outside;
+            }
+            else if (partialOnePlane)
+            {
+                return CullResult.Partial;
+            }
+            else
+            {
+                return CullResult.Inside;
+            }            
         }
 
         private static CullResult IsOBBoxInsidePlane(Vector4[] points, PlaneId planeId) 
