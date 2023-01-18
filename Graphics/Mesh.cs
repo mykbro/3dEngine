@@ -52,7 +52,7 @@ namespace _3dGraphics.Graphics
         }    
         
         public Triangle GetTriangle(int index)
-        {
+        {            
             return _triangles[index];
         }
 

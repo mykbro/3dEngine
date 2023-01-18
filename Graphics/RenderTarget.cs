@@ -18,10 +18,12 @@ namespace _3dGraphics.Graphics
         private readonly Object[] _pixelLocks;
         private readonly int _width;
         private readonly int _height;
+        private const int PIXEL_STRIDE = 4;
+
 
         public int Width => _width;
         public int Height => _height;
-        public int PixelStride => 4;
+        public int PixelStride => PIXEL_STRIDE;
         public byte[] Data => _data;
 
         public RenderTarget(int width, int height)
