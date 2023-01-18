@@ -8,7 +8,8 @@ using System.Threading.Tasks;
 
 namespace _3dGraphics.Graphics
 {
-    public class Triangle
+    //probably better as a struct
+    public readonly struct Triangle
     {
         /* Clockwise ordering */
         private readonly int _v1Index;

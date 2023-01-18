@@ -40,10 +40,16 @@ namespace _3dGraphics.Graphics
 
         public Color GetColorNormalizedCoords(float u, float v)
         {
-            int x = (int) (u * _widthMinusOne);
-            int y = (int) (v * _heightMinusOne);
+            //int x = ((int)(u * _widthMinusOne)) % _width;     //double modulo too expensive
+            //int y = ((int)(v * _heightMinusOne)) % _height;
+            int x = (int)(Math.Clamp(u * _widthMinusOne, 0, _widthMinusOne));
+            int y = (int)(Math.Clamp(v * _heightMinusOne, 0, _heightMinusOne));
 
-            return GetColor(x, y);
+
+            int pixelNr = (_height * y + x) * _bytesPerPixels;
+            return new Color(255, _data[pixelNr + 2], _data[pixelNr + 1], _data[pixelNr]);
+
+            //return GetColor(x, y);
         }
 
     }

@@ -56,8 +56,7 @@ namespace _3dGraphics
                                         StartIncreasingFov, StopIncreasingFov, StartDecreasingFov, StopDecreasingFov);
             _console = new ConsoleWindow();
             
-            CreateWorld(_mainWindow.ScreenWidth, _mainWindow.ScreenHeight);
-            LoadTexture();
+            CreateWorld(_mainWindow.ScreenWidth, _mainWindow.ScreenHeight);           
             _renderTarget = new RenderTarget(_mainWindow.ScreenWidth, _mainWindow.ScreenHeight);
 
             _mainWindow.Show();
@@ -80,9 +79,11 @@ namespace _3dGraphics
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
 
             //Generate100Cubes();            
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt", false);
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\Ganesha\Ganesha.obj.txt", true);
+            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\alduin\alduin.obj.txt", true);
 
-            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
+
+            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 2f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(0f, 0f, 10f), 1f));
@@ -101,6 +102,10 @@ namespace _3dGraphics
                 obj.MoveBy(movement);
             }
             */
+
+            //_myTexture = new Texture(@"D:\Objs\alduin\alduin.jpg");
+            _myTexture = new Texture(@"D:\Objs\Ganesha\Ganesha.png");
+            //_myTexture = new Texture(@"D:\Objs\white.bmp");
         }
 
         private void Generate100Cubes()
@@ -343,16 +348,16 @@ namespace _3dGraphics
                         string[] parts = text.Split();
                         switch (parts[0])
                         {
-                            case "v":
+                            case "v":                              
                                 float x = float.Parse(parts[1], CultureInfo.InvariantCulture);
                                 float y = float.Parse(parts[2], CultureInfo.InvariantCulture);
                                 float z = float.Parse(parts[3], CultureInfo.InvariantCulture);
-                                vertices.Add(new Vector4(x, y, z, 1f));
+                                vertices.Add(new Vector4(x, y, -z, 1f));                                    
                                 break;
                             case "vt":
                                 float u = float.Parse(parts[1], CultureInfo.InvariantCulture);
                                 float v = float.Parse(parts[2], CultureInfo.InvariantCulture);
-                                textureCoords.Add(new Vector3(u, v, 1f));
+                                textureCoords.Add(new Vector3(u, 1-v, 1f));
                                 break;
                             case "f":
                                 string[] parameters1 = parts[1].Split('/');
@@ -372,9 +377,9 @@ namespace _3dGraphics
                                     t1 = textureCoords[Int32.Parse(parameters1[1]) - 1];
                                     t2 = textureCoords[Int32.Parse(parameters2[1]) - 1];
                                     t3 = textureCoords[Int32.Parse(parameters3[1]) - 1];
-                                }                           
+                                }
 
-                                triangles.Add(new Triangle(v1 - 1, v2 - 1, v3 - 1, t1, t2, t3, 1f));    //obj file indexes count from 1; we also initialize to MAX luminosity
+                                triangles.Add(new Triangle(v3 - 1, v2 - 1, v1 - 1, t3, t2, t1, 1f));    //obj file indexes count from 1; we also initialize to MAX luminosity 
                                 break;
                             default:
                                 break;
@@ -386,12 +391,6 @@ namespace _3dGraphics
                 return new Mesh(vertices, triangles);
             }
         }
-
-        private void LoadTexture()
-        {                       
-            _myTexture = new Texture(@"D:\Objs\white.bmp"); 
-        }
-
 
 
         #region MOVEMENT CMDs
