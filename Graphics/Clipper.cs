@@ -39,21 +39,19 @@ namespace _3dGraphics.Graphics
 
                 for (int i = 0; i < NumPlanes && !done; i++)
                 {
-                    List<Triangle> resultList = new List<Triangle>();  
-                   
-                    int inputListSize = inputList.Count;
-                    for (int tIndex = 0; tIndex < inputListSize; tIndex++)
+                    List<Triangle> resultList = new List<Triangle>();
+
+                    foreach (Triangle t in inputList)
                     {
-                        Triangle t = inputList[tIndex];
                         resultList.AddRange(ClipTriangleToPlane(t, (PlaneId)i, vertices, verticesMask));
                     }
+
+                    inputList = resultList;
 
                     if (resultList.Count == 0)
                     {
                         done = true;
                     }
-
-                    inputList = resultList;                    
                 }
             }           
 

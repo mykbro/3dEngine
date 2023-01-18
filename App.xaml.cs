@@ -107,7 +107,7 @@ namespace _3dGraphics
 
             //_myTexture = new Texture(@"D:\Objs\alduin\alduin.jpg");
             _myTexture = new Texture(@"D:\Objs\Ganesha\Ganesha.png");
-            //_myTexture = new Texture(@"D:\Objs\white.bmp");
+            //_myTexture = new Texture(@"D:\Objs\white.bmp
             //_myTexture = new Texture(@"D:\Objs\smile.png");
         }
 
@@ -261,7 +261,7 @@ namespace _3dGraphics
             //...and we check each mesh's triangle asserting the vertices' flags and adding the triangle to the processTriangles list
             for (int tIndex = 0; tIndex < numTriangles; tIndex++)
             {
-                Triangle tempTriangle = new Triangle(mesh.GetTriangle(tIndex));
+                Triangle tempTriangle = mesh.GetTriangle(tIndex);
 
                 Vector3 v1 = Utility.Vec4ToVec3(vertices4D[tempTriangle.V1Index]);
                 Vector3 v2 = Utility.Vec4ToVec3(vertices4D[tempTriangle.V2Index]);
@@ -274,8 +274,8 @@ namespace _3dGraphics
 
                 if (scalarProd > 0)
                 {
-                    tempTriangle.LightIntensity = scalarProd;   //we calculate the illumination      
-                    trianglesToClip.Add(tempTriangle);                      
+                    trianglesToClip.Add(new Triangle(tempTriangle.V1Index, tempTriangle.V2Index, tempTriangle.V3Index, tempTriangle.T1, tempTriangle.T2, tempTriangle.T3, scalarProd));    //we calculate the illumination                        
+                    //trianglesToClip.Add(tempTriangle);    //no lightning
                     verticesMask[tempTriangle.V1Index] = true;
                     verticesMask[tempTriangle.V2Index] = true;
                     verticesMask[tempTriangle.V3Index] = true;
@@ -318,12 +318,9 @@ namespace _3dGraphics
                     for (int i = 0; i < resultCount; i++)
                     {
                         Triangle t = clipResults[i];
+                        Triangle transfT = new Triangle(t.V1Index, t.V2Index, t.V3Index, t.T1 / vertices4D[t.V1Index].W, t.T2 / vertices4D[t.V2Index].W, t.T3 / vertices4D[t.V3Index].W, t.LightIntensity);
 
-                        t.T1 /= vertices4D[t.V1Index].W;
-                        t.T2 /= vertices4D[t.V2Index].W;
-                        t.T3 /= vertices4D[t.V3Index].W;                       
-
-                        trianglesToRender.Add(t);
+                        trianglesToRender.Add(transfT);
                     }
                 }
             }
@@ -333,12 +330,9 @@ namespace _3dGraphics
                 for(int i=0; i < numTrianglesToClip; i++)
                 {
                     Triangle t = trianglesToClip[i];
+                    Triangle transfT = new Triangle(t.V1Index, t.V2Index, t.V3Index, t.T1 / vertices4D[t.V1Index].W, t.T2 / vertices4D[t.V2Index].W, t.T3 / vertices4D[t.V3Index].W, t.LightIntensity);
 
-                    t.T1 /= vertices4D[t.V1Index].W;
-                    t.T2 /= vertices4D[t.V2Index].W;
-                    t.T3 /= vertices4D[t.V3Index].W;
-
-                    trianglesToRender.Add(t);
+                    trianglesToRender.Add(transfT);
                 }
             }
              
