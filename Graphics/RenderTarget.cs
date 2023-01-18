@@ -35,12 +35,12 @@ namespace _3dGraphics.Graphics
             InitPixelLocks();
         }
 
-        public void RenderFragment(Fragment3D fragment, Texture texture)
+        public void RenderFragment(Triangle fragment, List<Vector4> vertices, Texture texture)
         {
-            Vector3 p1 = fragment.P1;
-            Vector3 p2 = fragment.P2;
-            Vector3 p3 = fragment.P3;
-            
+            Vector3 p1 = Utility.Vec4ToVec3(vertices[fragment.V1Index]);
+            Vector3 p2 = Utility.Vec4ToVec3(vertices[fragment.V2Index]);
+            Vector3 p3 = Utility.Vec4ToVec3(vertices[fragment.V3Index]);
+
             Vector3 t1 = fragment.T1;
             Vector3 t2 = fragment.T2;
             Vector3 t3 = fragment.T3;            

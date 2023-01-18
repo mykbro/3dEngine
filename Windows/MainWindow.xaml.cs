@@ -121,43 +121,7 @@ namespace _3dGraphics.Windows
             _wBmp.WritePixels(new Int32Rect(0, 0, ScreenWidth, ScreenHeight), data, rowStride, 0);
             _canvas.Source = _wBmp;
         }
-
-        private void DrawFragmentOnGraphics(Fragment f, DrawingGraphics g)
-        {
-            int grayLevel = (int) (f.LightIntensity * 255);
-
-            //System.Drawing.Color penColor = System.Drawing.Color.FromArgb(grayLevel, grayLevel, grayLevel);
-            //DrawingPen renderPen = new DrawingPen(penColor);
-            /*
-            DrawingPen renderPen = _pens[grayLevel];
            
-            g.DrawLine(renderPen, f.P1, f.P2);          
-            g.DrawLine(renderPen, f.P2, f.P3);           
-            g.DrawLine(renderPen, f.P3, f.P1);  
-            */
-        }
-
-
-        public void DrawFragments(IEnumerable<Fragment> fragments)
-        {  
-            _wBmp.Lock();    //we need to Lock even in the rendering thread because of the backbuffer usage
-            using(DrawingBitmap bmp = new DrawingBitmap(ScreenWidth, ScreenHeight, _wBmp.BackBufferStride, System.Drawing.Imaging.PixelFormat.Format24bppRgb, _wBmp.BackBuffer))
-            {                
-                using(DrawingGraphics g = DrawingGraphics.FromImage(bmp))
-                {                  
-                    //we reset the writableBitmap
-                    g.FillRectangle(System.Drawing.Brushes.Black, new System.Drawing.Rectangle(0,0, ScreenWidth, ScreenHeight));
-                    //we draw each fragment
-                    foreach(Fragment f in fragments) 
-                    {
-                        DrawFragmentOnGraphics(f, g);
-                    } 
-                }
-            }
-            _wBmp.AddDirtyRect(new Int32Rect(0,0, ScreenWidth, ScreenHeight));
-            _wBmp.Unlock();
-            _canvas.Source = _wBmp;  
-        }       
 
         private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {

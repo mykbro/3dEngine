@@ -85,6 +85,7 @@ namespace _3dGraphics
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt", false);
 
             //_world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
+            
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(0f, 0f, 10f), 1f));
@@ -105,20 +106,20 @@ namespace _3dGraphics
 
 
             //_myTexture = new Texture(@"D:\Objs\alduin\alduin.jpg");
-            //_myTexture = new Texture(@"D:\Objs\Ganesha\Ganesha.png");
+            _myTexture = new Texture(@"D:\Objs\Ganesha\Ganesha.png");
             //_myTexture = new Texture(@"D:\Objs\white.bmp
-            _myTexture = new Texture(@"D:\Objs\smile.png");
+            //_myTexture = new Texture(@"D:\Objs\smile.png");
         }
 
         private void Generate100Cubes()
         {
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt", true);
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\Ganesha\Ganesha.obj.txt", true);
 
-            for(int i=0; i<5; i++)
+            for(int i=0; i<10; i++)
             {
-                for(int j=0; j<5; j++)
+                for(int j=0; j<10; j++)
                 {
-                    _world.Objects.Add(new WorldObject(objToLoad, new Vector3(i * 2, 0, j*2), 1f));
+                    _world.Objects.Add(new WorldObject(objToLoad, new Vector3(i * 20, 0, j*20), 1f));
                 }
             }
         }
@@ -351,7 +352,8 @@ namespace _3dGraphics
                 }
             }
 
-            Parallel.ForEach(trianglesToRender, (t) => RenderFragment(t, vertices4D));
+            //we finally send the triangle to render
+            Parallel.ForEach(trianglesToRender, (t) => _renderTarget.RenderFragment(t, vertices4D, _myTexture));
 
             lock (debugInfo)
             {
@@ -361,19 +363,6 @@ namespace _3dGraphics
                 debugInfo.NumTrianglesSentToRender += trianglesToRender.Count;
             }        
         }
-
-        private void RenderFragment(Triangle tempTri, List<Vector4> vertices4D)
-        {
-            
-            Vector4 v1 = vertices4D[tempTri.V1Index];
-            Vector4 v2 = vertices4D[tempTri.V2Index];
-            Vector4 v3 = vertices4D[tempTri.V3Index];
-
-            Fragment3D frag = new Fragment3D(Utility.Vec4ToVec3(v1), Utility.Vec4ToVec3(v2), Utility.Vec4ToVec3(v3), tempTri.T1, tempTri.T2, tempTri.T3, tempTri.LightIntensity);
-            _renderTarget.RenderFragment(frag, _myTexture);
-            
-            //_renderTarget.RenderFragmentScanline(frag);
-        }        
 
         private static Mesh LoadMeshFromObjFile(string filename, bool useTextures)
         {
@@ -400,7 +389,7 @@ namespace _3dGraphics
                             case "vt":
                                 float u = float.Parse(parts[1], CultureInfo.InvariantCulture);
                                 float v = float.Parse(parts[2], CultureInfo.InvariantCulture);
-                                textureCoords.Add(new Vector3(u, v, 1f));
+                                textureCoords.Add(new Vector3(u, 1-v, 1f));
                                 break;
                             case "f":
                                 string[] parameters1 = parts[1].Split('/');
