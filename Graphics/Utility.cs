@@ -38,7 +38,7 @@ namespace _3dGraphics.Graphics
 
         public static double NormalizeAngle(double angle)
         {
-            double TwoPI = 2 * MathF.PI;
+            double TwoPI = 2 * Math.PI;
             return (angle + TwoPI) % TwoPI;
         }
 

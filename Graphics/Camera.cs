@@ -34,10 +34,11 @@ namespace _3dGraphics.Graphics
             get
             {
                 Vector3 pos = Position;
+                Vector3 ori = Orientation;
                 Matrix4x4 invTanslMatrix = Matrix4x4.CreateTranslation(-pos.X, -pos.Y, -pos.Z);
-                Matrix4x4 invPitchMatrix = Matrix4x4.CreateRotationX( -Orientation.X);
-                Matrix4x4 invYawMatrix = Matrix4x4.CreateRotationY( -Orientation.Y);
-                Matrix4x4 invRollMatrix = Matrix4x4.CreateRotationZ( -Orientation.Z);
+                Matrix4x4 invPitchMatrix = Matrix4x4.CreateRotationX( -ori.X);
+                Matrix4x4 invYawMatrix = Matrix4x4.CreateRotationY( -ori.Y);
+                Matrix4x4 invRollMatrix = Matrix4x4.CreateRotationZ( -ori.Z);
 
                 return invTanslMatrix * invRollMatrix * invYawMatrix * invPitchMatrix;   
             }

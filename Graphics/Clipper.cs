@@ -8,9 +8,10 @@ using System.Windows.Markup.Localizer;
 
 namespace _3dGraphics.Graphics
 {
+    public enum PlaneId { Near = 0, Left = 1, Far = 2, Right = 3, Top = 4, Bottom = 5 };
+
     public static class Clipper
-    {        
-        private enum PlaneId { Near=0, Left=1, Far=2, Right=3, Top=4, Bottom=5 };
+    {   
         private const int NumPlanes = 6;
 
         public static List<Triangle> ClipTriangleAndAppendNewVerticesAndTriangles(Triangle triangle, List<Vector4> vertices, List<bool> verticesMask)
@@ -226,23 +227,17 @@ namespace _3dGraphics.Graphics
             switch (planeId)
             {
                 case PlaneId.Near:
-                    return point.Z >= 0;
-                    break;
+                    return point.Z >= 0;                   
                 case PlaneId.Far:
-                    return point.Z <= point.W;
-                    break;
+                    return point.Z <= point.W;                   
                 case PlaneId.Left:
-                    return point.X >= -point.W;
-                    break;
+                    return point.X >= -point.W;                 
                 case PlaneId.Right:
                     return point.X <= point.W;
-                    break;
                 case PlaneId.Top:
                     return point.Y <= point.W;
-                    break;
                 case PlaneId.Bottom:
                     return point.Y >= -point.W;
-                    break;
                 default:
                     return false;
             }

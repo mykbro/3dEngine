@@ -21,6 +21,7 @@ using System.IO;
 using System.Globalization;
 using PointF = System.Drawing.PointF;
 using System.Windows.Media.Imaging;
+using System.Xml.Linq;
 
 namespace _3dGraphics
 {
@@ -78,12 +79,12 @@ namespace _3dGraphics
             //we create the world and populate it with objects
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
 
-            //Generate100Cubes();            
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\Ganesha\Ganesha.obj.txt", true);
+            Generate100Cubes();            
+            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\Ganesha\Ganesha.obj.txt", true);
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\alduin\alduin.obj.txt", true);
+            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt", false);
 
-
-            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 2f));
+            //_world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(0f, 0f, 10f), 1f));
@@ -92,32 +93,53 @@ namespace _3dGraphics
             //_world.Camera.MoveBy(new Vector3(0.5f, 3f, 0.5f));
             //_world.Camera.RotateBy(new Vector3(1.5f, 4f, 0));
 
-            /*
+
             //big distances test            
-            float d = 2e6f;
-            Vector3 movement = Vector3.One * d;
-            _world.Camera.MoveBy(movement);
-            foreach (WorldObject obj in _world.Objects)
-            {
-                obj.MoveBy(movement);
-            }
-            */
+            //float d = 2e6f;
+            //Vector3 movement = Vector3.One * d;
+            //_world.Camera.MoveBy(movement);
+            //foreach (WorldObject obj in _world.Objects)
+            //{
+            //    obj.MoveBy(movement);
+            //}
+
 
             //_myTexture = new Texture(@"D:\Objs\alduin\alduin.jpg");
-            _myTexture = new Texture(@"D:\Objs\Ganesha\Ganesha.png");
-            //_myTexture = new Texture(@"D:\Objs\white.bmp");
+            //_myTexture = new Texture(@"D:\Objs\Ganesha\Ganesha.png");
+            //_myTexture = new Texture(@"D:\Objs\white.bmp
+            _myTexture = new Texture(@"D:\Objs\smile.png");
         }
 
         private void Generate100Cubes()
         {
             Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt", true);
 
-            for(int i=0; i<20; i++)
+            for(int i=0; i<5; i++)
             {
-                for(int j=0; j<20; j++)
+                for(int j=0; j<5; j++)
                 {
                     _world.Objects.Add(new WorldObject(objToLoad, new Vector3(i * 2, 0, j*2), 1f));
                 }
+            }
+        }
+
+        private void CullAndRenderObject(WorldObject wObject, Matrix4x4 worldToProj, Matrix4x4 viewportMatrix, DebugInfo debugInfo)
+        {  
+            /***
+            please note that we're skipping the inverse check of objects in order to cull big meshes that are false positives
+            ****/
+
+            //we calculate some matrixes (that we can use later in the render process)
+            Matrix4x4 localToWorld = wObject.LocalToWorldMatrix;
+            Matrix4x4 localToProj = localToWorld * worldToProj;
+
+            //we get the mesh localbox in OBB format and we transform it to clip space for easy culling
+            OBBox meshBox = new OBBox(wObject.Mesh.AABoundingBox);
+            OBBox projectedBox = OBBox.TranformOBBox(localToProj, meshBox);
+
+            if(Culler.IsOBBoxInsideClipSpace(projectedBox) != CullResult.Outside)
+            {
+                RenderObject(wObject, localToProj, viewportMatrix, debugInfo);
             }
         }
 
@@ -135,7 +157,7 @@ namespace _3dGraphics
             _renderTarget.Clear();
 
             //we render each object concurrently (every task will also render each fragment concurrently)
-            Parallel.ForEach(_world.Objects, (wObj) => RenderObject(wObj, worldToProj, viewportMatrix, debugInfo));            
+            Parallel.ForEach(_world.Objects, (wObj) => CullAndRenderObject(wObj, worldToProj, viewportMatrix, debugInfo));            
 
             //preparing text to display in the console
             StringBuilder consoleSB = new StringBuilder();
@@ -204,7 +226,7 @@ namespace _3dGraphics
             }
         }       
 
-        private void RenderObject(WorldObject wObject, Matrix4x4 worldToProj, Matrix4x4 viewportMatrix, DebugInfo debugInfo) 
+        private void RenderObject(WorldObject wObject, Matrix4x4 localToProj, Matrix4x4 viewportMatrix, DebugInfo debugInfo) 
         {            
             Mesh mesh = wObject.Mesh;                       //store to avoid repetitive calls
             int numVertices = mesh.VertexCount;             //store to avoid repetitive calls
@@ -251,18 +273,14 @@ namespace _3dGraphics
                     verticesMask[tempTriangle.V2Index] = true;
                     verticesMask[tempTriangle.V3Index] = true;
                 }
-            }
-
-            //calculate global Matrix
-            Matrix4x4 localToWorld = wObject.LocalToWorldMatrix;
-            Matrix4x4 globalMatrix = localToWorld * worldToProj;
+            }                       
 
             //projection
-            for (int vIndex = 0; vIndex < vertices4D.Count; vIndex++)
+            for (int vIndex = 0; vIndex < numVertices; vIndex++)
             {
                 if (verticesMask[vIndex])
                 {
-                    Vector4 temp = Vector4.Transform(vertices4D[vIndex], globalMatrix);
+                    Vector4 temp = Vector4.Transform(vertices4D[vIndex], localToProj);
                     vertices4D[vIndex] = temp;
                     if (Clipper.IsPointInsideViewVolume(temp))
                     {
@@ -277,10 +295,11 @@ namespace _3dGraphics
             }
 
             //we create a new List<Triangle> for the triangles that passes the clip stage initializing it to trianglesToClip.Count
-            List<Triangle> trianglesToRender = new List<Triangle>(trianglesToClip.Count);
+            int numTrianglesToClip = trianglesToClip.Count;
+            List<Triangle> trianglesToRender = new List<Triangle>(numTrianglesToClip);
 
             //triangle clipping
-            for (int tIndex = 0; tIndex < trianglesToClip.Count; tIndex++)
+            for (int tIndex = 0; tIndex < numTrianglesToClip; tIndex++)
             {
                 List<Triangle> clipResults = Clipper.ClipTriangleAndAppendNewVerticesAndTriangles(trianglesToClip[tIndex], vertices4D, verticesMask);
                 
@@ -294,10 +313,14 @@ namespace _3dGraphics
 
                     trianglesToRender.Add(transfT);
                 }
-            }
+            }            
+            //here we can free trianglesToClip            
+            trianglesToClip = null;            
+
 
             //division and transformation to viewport
-            for (int vIndex = 0; vIndex < vertices4D.Count; vIndex++)
+            int newVertexCount = vertices4D.Count;
+            for (int vIndex = 0; vIndex < newVertexCount; vIndex++)
             {
                 if (verticesMask[vIndex])
                 {
@@ -314,7 +337,7 @@ namespace _3dGraphics
             {
                 debugInfo.NumVerticesFromObjects += numVertices;
                 debugInfo.NumTrianglesFromObjects += numTriangles;
-                debugInfo.NumTrianglesSentToClip += trianglesToClip.Count;
+                debugInfo.NumTrianglesSentToClip += numTrianglesToClip;
                 debugInfo.NumTrianglesSentToRender += trianglesToRender.Count;
             }        
         }
@@ -329,8 +352,7 @@ namespace _3dGraphics
 
             _renderTarget.RenderFragment(frag, _myTexture);
             //_renderTarget.RenderFragmentScanline(frag);
-        }
-
+        }        
 
         private static Mesh LoadMeshFromObjFile(string filename, bool useTextures)
         {
@@ -357,7 +379,7 @@ namespace _3dGraphics
                             case "vt":
                                 float u = float.Parse(parts[1], CultureInfo.InvariantCulture);
                                 float v = float.Parse(parts[2], CultureInfo.InvariantCulture);
-                                textureCoords.Add(new Vector3(u, 1-v, 1f));
+                                textureCoords.Add(new Vector3(u, v, 1f));
                                 break;
                             case "f":
                                 string[] parameters1 = parts[1].Split('/');

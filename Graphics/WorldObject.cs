@@ -11,8 +11,7 @@ namespace _3dGraphics.Graphics
     public class WorldObject
     {
         private Mesh _objectMeshRef;   //we do not make it readonly... we may wish to change it at runtime
-        private Vector3 _position;
-        private Vector3 _positionLowBits;
+        private DoubleVector3 _position;        
         private float _scaleFactor;
         //private Quaternion _orientation;        
 
@@ -22,11 +21,10 @@ namespace _3dGraphics.Graphics
 
         public Vector3 Position
         {
-            get => _position;
+            get => _position.ToVector3();
             set
             {
-                _position = value;
-                _positionLowBits = Vector3.Zero;
+                _position = new DoubleVector3(value);               
             }
         }
 
@@ -36,8 +34,9 @@ namespace _3dGraphics.Graphics
         {
             get
             {
+                Vector3 pos = Position;
                 Matrix4x4 scaleMatrix = Matrix4x4.CreateScale(_scaleFactor);
-                Matrix4x4 translMatrix = Matrix4x4.CreateTranslation(_position.X, _position.Y, _position.Z);
+                Matrix4x4 translMatrix = Matrix4x4.CreateTranslation(pos.X, pos.Y, pos.Z);
 
                 //return translMatrix * scaleMatrix;  //LOCAL -> SCALE -> TRANSL -> WORLD
                 return scaleMatrix * translMatrix;  //LOCAL -> SCALE -> TRANSL -> WORLD
@@ -48,8 +47,9 @@ namespace _3dGraphics.Graphics
         {
             get
             {
+                Vector3 pos = Position;
                 Matrix4x4 unscaleMatrix = Matrix4x4.CreateScale(1.0f/_scaleFactor);
-                Matrix4x4 untranslMatrix = Matrix4x4.CreateTranslation(- _position.X, - _position.Y, - _position.Z);
+                Matrix4x4 untranslMatrix = Matrix4x4.CreateTranslation(-pos.X, -pos.Y, -pos.Z);
 
                 //return unscaleMatrix * untranslMatrix;  //WORLD -> UNTRANSL -> UNSCALE -> LOCAL
                 return untranslMatrix * unscaleMatrix;  //WORLD -> UNTRANSL -> UNSCALE -> LOCAL
@@ -61,16 +61,14 @@ namespace _3dGraphics.Graphics
         public WorldObject(Mesh mRef, Vector3 pos, float scale)
         {
             _objectMeshRef = mRef;  //we copy the reference
-            _position = pos;
-            _positionLowBits = Vector3.Zero;
+            _position = new DoubleVector3(pos);          
             _scaleFactor = scale;
         }
 
         public WorldObject(WorldObject wObj)
         {
             _objectMeshRef = wObj._objectMeshRef;   //we copy the reference
-            _position = wObj._position;
-            _positionLowBits = wObj._positionLowBits;
+            _position = wObj._position;           
             _scaleFactor = wObj._scaleFactor;
         }
         
@@ -78,11 +76,7 @@ namespace _3dGraphics.Graphics
 
         public void MoveBy(Vector3 deltaPos)
         {
-            //we use kahan algorithm
-            Vector3 adjustedDeltaPos = deltaPos - _positionLowBits;
-            Vector3 newPos = _position + adjustedDeltaPos;
-            _positionLowBits = (newPos - _position) - adjustedDeltaPos;
-            _position = newPos;
+            _position += new DoubleVector3(deltaPos);
         } 
     }
 }

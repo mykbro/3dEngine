@@ -12,6 +12,7 @@ namespace _3dGraphics.Graphics
         private readonly Vector4[] _vertices;      
         private readonly Triangle[] _triangles;
         private readonly Vector3[] _triangleNormals;
+        private readonly AABBox _boundingBox;
 
         // PROPERTIES
 
@@ -20,7 +21,8 @@ namespace _3dGraphics.Graphics
         public IEnumerable<Vector3> Normals => _triangleNormals;
 
         public int VertexCount => _vertices.Length;
-        public int TriangleCount => _triangles.Length;     
+        public int TriangleCount => _triangles.Length; 
+        public AABBox AABoundingBox => _boundingBox;
 
         // CONSTRUCTORS
 
@@ -31,6 +33,8 @@ namespace _3dGraphics.Graphics
 
             _triangleNormals = new Vector3[_triangles.Length];
             GenerateNormals();
+
+            _boundingBox = GenerateAxisAlignedBoundingBox();
         }
 
         public Mesh(Mesh m)
@@ -76,6 +80,44 @@ namespace _3dGraphics.Graphics
             {
                 _triangleNormals[i] = CalculateTriangleNormal(i);
             }
+        }
+
+        private AABBox GenerateAxisAlignedBoundingBox()
+        {
+            float minX, maxX, minY, maxY, minZ, maxZ;
+            Vector4 minPoint, maxPoint;
+
+            if(_vertices.Length > 0) 
+            {
+                minX = _vertices[0].X;
+                maxX = _vertices[0].X;                
+                minY = _vertices[0].Y;
+                maxY = _vertices[0].Y;
+                minZ = _vertices[0].Z;
+                maxZ = _vertices[0].Z;
+
+                for (int i = 1; i < _vertices.Length; i++)
+                {
+                    Vector4 temp = _vertices[i];
+
+                    minX = MathF.Min(temp.X, minX);
+                    maxX = MathF.Max(temp.X, maxX);
+                    minY = MathF.Min(temp.Y, minY);
+                    maxY = MathF.Max(temp.Y, maxY);
+                    minZ = MathF.Min(temp.Z, minZ);
+                    maxZ = MathF.Max(temp.Z, maxZ);
+                }
+
+                minPoint = new Vector4(minX, minY, minZ, 1f);
+                maxPoint = new Vector4(maxX, maxY, maxZ, 1f);
+            }
+            else
+            {
+                minPoint = Vector4.Zero; 
+                maxPoint = Vector4.Zero;
+            }
+
+            return new AABBox(minPoint, maxPoint);            
         }
         
         private Vector3 Vec4ToVec3(Vector4 v)
