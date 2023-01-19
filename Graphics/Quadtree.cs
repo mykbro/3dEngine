@@ -12,12 +12,14 @@ namespace _3dGraphics.Graphics
         private readonly int _maxDepth;         //lowest level we want to reach (starts from 1)
         private readonly QuadTile _lvlZeroTile; //precomputed from size        
 
-        public Quadtree(float size, int maxDepth)
+        public List<T> Items => _lvlZeroNode.AllItems;        
+        
+        public Quadtree(int size, int maxDepth)
         {
             _lvlZeroNode = new QuadtreeNode<T>();            
             _maxDepth = maxDepth;
 
-            int halfSize = ((int) size) / 2;
+            int halfSize = size / 2;
             _lvlZeroTile = new QuadTile(0, 0, halfSize);
         }
 
@@ -34,7 +36,34 @@ namespace _3dGraphics.Graphics
 
         private const int NUM_CHILDREN = 4;
 
-        public bool HasChildren => (_subtrees != null);        
+        public bool HasChildren => (_subtrees != null);
+        
+        public List<T> NodeOnlyItems
+        {
+            get
+            {
+                if(_nodeObjects == null)
+                {
+                    return new List<T>();
+                }
+                else
+                {
+                    return _nodeObjects;
+                }
+            }
+        }
+
+        public List<T> AllItems
+        {
+            get
+            {
+                //we use a listbuilder in order to avoid lots of List instantiations
+                List<T> toReturn = new List<T>();
+                AppendNodeItemsHelper(toReturn);
+
+                return toReturn;
+            }
+        }
 
         public QuadtreeNode()
         {
@@ -93,6 +122,24 @@ namespace _3dGraphics.Graphics
 
                     _nodeObjects.Add(obj);                    
                 }                
+            }
+        }
+
+        private void AppendNodeItemsHelper(List<T> listBuilder)
+        {
+            //we add the node items (if any)
+            listBuilder.AddRange(NodeOnlyItems);
+
+            //and we recursively append the children's nodes
+            if (HasChildren)
+            {
+                for (int i = 0; i < NUM_CHILDREN; i++)
+                {
+                    if (_subtrees[i] != null)
+                    {
+                        _subtrees[i].AppendNodeItemsHelper(listBuilder);
+                    }
+                }
             }
         }
 

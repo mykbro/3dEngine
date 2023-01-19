@@ -51,6 +51,11 @@ namespace _3dGraphics.Graphics
             }            
         }
 
+        public static void FillObjectsToRenderListsFromQuadtree(Quadtree<WorldObject> qTree, List<WorldObject> objectsThatNeedCulling, List<WorldObject> objectsReadyForRender)
+        {
+            fasfasdfhg
+        }
+
         private static CullResult IsOBBoxInsidePlane(Vector4[] points, PlaneId planeId) 
         {
             bool insideFound = false;
