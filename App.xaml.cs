@@ -71,7 +71,7 @@ namespace _3dGraphics
             
             float FOV = 90f;
             float zNear = 0.05f;
-            float zFar = 50f;
+            float zFar = 100f;
             float speedKmh = 6f;
             float rotSpeedDegSec = 60f;
             float fovIncSpeedDegSec = 30f;
@@ -108,7 +108,7 @@ namespace _3dGraphics
             //_myTexture = new Texture(@"D:\Objs\alduin\alduin.jpg");
             //_myTexture = new Texture(@"D:\Objs\Ganesha\Ganesha.png");
             //_myTexture = new Texture(@"D:\Objs\white.bmp
-            _myTexture = new Texture(@"D:\Objs\smile.png");
+            _myTexture = new Texture(@"D:\Objs\smile.bmp");
         }
 
         private void Generate100Cubes()
@@ -119,7 +119,7 @@ namespace _3dGraphics
             {
                 for(int j=-250; j<250; j++)
                 {
-                    _world.AddWorldObject(new WorldObject(objToLoad, new Vector3(i * 2 + 1, 0, j*2 + 1), 1f));
+                    _world.AddWorldObject(new WorldObject(objToLoad, new Vector3(i*2, 0, j*2), 1f));
                 }
             }
         }
@@ -146,14 +146,22 @@ namespace _3dGraphics
                 if (objectVisibility != CullResult.Outside)
                 {
                     //if the object is partially visible we can skip che clipping stage when rendering
-                    bool needsClipping = (objectVisibility == CullResult.Partial);
+                    bool needsClipping = true; //(objectVisibility == CullResult.Partial);
                     RenderObject(wObject, localToProj, viewportMatrix, debugInfo, needsClipping);
+                    if (needsClipping)
+                    {
+                        Interlocked.Increment(ref debugInfo.ObjectsNeedClipping);
+                    }
+                    else
+                    {
+                        Interlocked.Increment(ref debugInfo.ObjectsTotallyInsideAfterBoxClipping);
+                    }
                 }
             }
             else
             {
                 //we don't need to cull, which means we don't need to clip either
-                RenderObject(wObject, localToProj, viewportMatrix, debugInfo, false);
+                RenderObject(wObject, localToProj, viewportMatrix, debugInfo, false);    //<--- should be false !!!
             }
             
         }
@@ -191,6 +199,15 @@ namespace _3dGraphics
             consoleSB.AppendLine(String.Format("thetaZ: {0:F3}", _world.Camera.Orientation.Z));
             consoleSB.AppendLine();
             consoleSB.AppendLine(String.Format("FOV: {0:F3}", _world.Camera.FOV));
+            consoleSB.AppendLine();
+            consoleSB.AppendLine(String.Format("Total objects: {0}", _world.ObjectCount));
+            consoleSB.AppendLine(String.Format("Objects rendered: {0}", debugInfo.ObjectsRendered));
+            consoleSB.AppendLine();
+            consoleSB.AppendLine(String.Format("Objects after QT prune: {0}", objsReadyToRender.Count + objsNeedCulling.Count));
+            consoleSB.AppendLine(String.Format("Objects totally inside after prune: {0}", objsReadyToRender.Count));
+            consoleSB.AppendLine(String.Format("Objects need Box check: {0}", objsNeedCulling.Count));            
+            consoleSB.AppendLine(String.Format("Objects totally inside after box check: {0}", debugInfo.ObjectsTotallyInsideAfterBoxClipping));
+            consoleSB.AppendLine(String.Format("Objects clipped: {0}", debugInfo.ObjectsNeedClipping));
             consoleSB.AppendLine();
             consoleSB.AppendLine(String.Format("Vertices: {0}", debugInfo.NumVerticesFromObjects));
             consoleSB.AppendLine(String.Format("Triangles (meshes): {0}", debugInfo.NumTrianglesFromObjects));
@@ -377,6 +394,7 @@ namespace _3dGraphics
                 debugInfo.NumTrianglesFromObjects += numTriangles;
                 debugInfo.NumTrianglesSentToClip += numTrianglesToClip;
                 debugInfo.NumTrianglesSentToRender += trianglesToRender.Count;
+                debugInfo.ObjectsRendered++;
             }        
         }
 

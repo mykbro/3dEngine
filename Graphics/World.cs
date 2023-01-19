@@ -19,6 +19,7 @@ namespace _3dGraphics.Graphics
 
         //public IEnumerable<Mesh> Meshes => _meshes.AsEnumerable();
         //public Camera Camera => new Camera(_camera);
+        public int ObjectCount => _worldObjects.Count;
         public IEnumerable<WorldObject> Objects => _worldObjects;
         public Camera Camera => _camera;
         public Quadtree<WorldObject> QuadTree => _objectsQTree;
@@ -29,7 +30,7 @@ namespace _3dGraphics.Graphics
         public World(int screenWidth, int screenHeight, float cameraFov, float cameraZNear, float cameraZFar, float cameraSpeedKmh, float cameraRotSpeedDegSec, float fovIncSpeedDegSec)
         {
             _worldObjects = new List<WorldObject>();
-            _objectsQTree = new Quadtree<WorldObject>(1024, 10);
+            _objectsQTree = new Quadtree<WorldObject>(1024, 6);
             _camera = new Camera(screenWidth, screenHeight, cameraFov, cameraZNear, cameraZFar);
             _cameraSpeedMetersSec = cameraSpeedKmh / 3.6f;
             _cameraRotSpeedRadSec = Utility.DegToRad(cameraRotSpeedDegSec);
