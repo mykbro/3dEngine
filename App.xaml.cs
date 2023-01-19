@@ -84,7 +84,7 @@ namespace _3dGraphics
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\alduin\alduin.obj.txt", true);
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt", false);
 
-            _world.Objects.Add(new WorldObject(objToLoad, Vector3.Zero, 1f));
+            _world.AddWorldObject(new WorldObject(objToLoad, Vector3.Zero, 1f));
             
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
@@ -119,7 +119,7 @@ namespace _3dGraphics
             {
                 for(int j=0; j<10; j++)
                 {
-                    _world.Objects.Add(new WorldObject(objToLoad, new Vector3(i * 20, 0, j*20), 1f));
+                    _world.AddWorldObject(new WorldObject(objToLoad, new Vector3(i * 20, 0, j*20), 1f));
                 }
             }
         }
@@ -135,7 +135,7 @@ namespace _3dGraphics
             Matrix4x4 localToProj = localToWorld * worldToProj;
 
             //we get the mesh localbox in OBB format and we transform it to clip space for easy culling
-            OBBox meshBox = new OBBox(wObject.Mesh.AABoundingBox);
+            OBBox meshBox = new OBBox(wObject.Mesh.AxisAlignedBoundingBox);
             OBBox projectedBox = OBBox.TranformOBBox(localToProj, meshBox);
 
             //we pass the wObject to the culler

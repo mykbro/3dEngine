@@ -22,7 +22,7 @@ namespace _3dGraphics.Graphics
 
         public int VertexCount => _vertices.Length;
         public int TriangleCount => _triangles.Length; 
-        public AABBox AABoundingBox => _boundingBox;
+        public AABBox AxisAlignedBoundingBox => _boundingBox;
 
         // CONSTRUCTORS
 

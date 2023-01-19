@@ -17,7 +17,7 @@ namespace _3dGraphics.Graphics
 
         // PROPERTIES
 
-        public Mesh Mesh { get => _objectMeshRef; set => _objectMeshRef = value; }
+        public Mesh Mesh { get => _objectMeshRef; set => _objectMeshRef = value; }        
 
         public Vector3 Position
         {
