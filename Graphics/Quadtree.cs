@@ -8,16 +8,19 @@ namespace _3dGraphics.Graphics
     public class Quadtree<T>
     {
         private readonly QuadtreeNode<T> _lvlZeroNode;
-        //private readonly float _size;         //width/length of the lvl0 node
+        private readonly float _size;           //width/length of the lvl0 node
         private readonly int _maxDepth;         //lowest level we want to reach (starts from 1)
         private readonly QuadTile _lvlZeroTile; //precomputed from size        
 
-        public List<T> Items => _lvlZeroNode.AllItems;        
+        public List<T> Items => _lvlZeroNode.AllItems;
+        public QuadTile RootTile => _lvlZeroTile;
+        public QuadtreeNode<T> RootNode => _lvlZeroNode;
         
         public Quadtree(int size, int maxDepth)
         {
             _lvlZeroNode = new QuadtreeNode<T>();            
             _maxDepth = maxDepth;
+            _size = size;
 
             int halfSize = size / 2;
             _lvlZeroTile = new QuadTile(0, 0, halfSize);
@@ -33,10 +36,9 @@ namespace _3dGraphics.Graphics
     {
         private List<T> _nodeObjects;
         private QuadtreeNode<T>[] _subtrees;        
-
         private const int NUM_CHILDREN = 4;
 
-        public bool HasChildren => (_subtrees != null);
+        public bool HasChildren => (_subtrees != null);        
         
         public List<T> NodeOnlyItems
         {
@@ -70,6 +72,18 @@ namespace _3dGraphics.Graphics
             //we do not instance our structures immediately but on demand for the first item
             _nodeObjects = null;              
             _subtrees = null;
+        }
+
+        public QuadtreeNode<T>? GetChildren(int i)
+        {
+            if(this.HasChildren && _subtrees[i] != null)
+            {
+                return _subtrees[i];
+            }
+            else 
+            { 
+                return null; 
+            }
         }
 
         public void Add(T obj, AABBox objBox, QuadTile tile, int levelsLeft)
@@ -149,7 +163,7 @@ namespace _3dGraphics.Graphics
             return (box.MinX >= tile.MinX && box.MaxX <= tile.MaxX && box.MinZ >= tile.MinY && box.MaxZ <= tile.MaxY);
         }
 
-        private static QuadTile GetChildTile(QuadTile parentTile, int childrenNr)
+        public static QuadTile GetChildTile(QuadTile parentTile, int childrenNr)
         {
             int quarterSize = parentTile.HalfSize / 2;
             
