@@ -79,12 +79,12 @@ namespace _3dGraphics
             //we create the world and populate it with objects
             _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
 
-            //Generate100Cubes();            
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\Ganesha\Ganesha.obj.txt", true);
+            Generate100Cubes();            
+            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\Ganesha\Ganesha.obj.txt", true);
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\alduin\alduin.obj.txt", true);
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt", false);
 
-            _world.AddWorldObject(new WorldObject(objToLoad, Vector3.Zero, 1f));
+            //_world.AddWorldObject(new WorldObject(objToLoad, Vector3.Zero, 1f));
             
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
             //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
@@ -106,25 +106,25 @@ namespace _3dGraphics
 
 
             //_myTexture = new Texture(@"D:\Objs\alduin\alduin.jpg");
-            _myTexture = new Texture(@"D:\Objs\Ganesha\Ganesha.png");
+            //_myTexture = new Texture(@"D:\Objs\Ganesha\Ganesha.png");
             //_myTexture = new Texture(@"D:\Objs\white.bmp
-            //_myTexture = new Texture(@"D:\Objs\smile.png");
+            _myTexture = new Texture(@"D:\Objs\smile.png");
         }
 
         private void Generate100Cubes()
         {
-            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\Ganesha\Ganesha.obj.txt", true);
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt", true);
 
-            for(int i=0; i<10; i++)
+            for(int i=-250; i<250; i++)
             {
-                for(int j=0; j<10; j++)
+                for(int j=-250; j<250; j++)
                 {
-                    _world.AddWorldObject(new WorldObject(objToLoad, new Vector3(i * 20, 0, j*20), 1f));
+                    _world.AddWorldObject(new WorldObject(objToLoad, new Vector3(i * 2 + 1, 0, j*2 + 1), 1f));
                 }
             }
         }
 
-        private void CullAndRenderObject(WorldObject wObject, Matrix4x4 worldToProj, Matrix4x4 viewportMatrix, DebugInfo debugInfo)
+        private void CullAndRenderObject(WorldObject wObject, Matrix4x4 worldToProj, Matrix4x4 viewportMatrix, bool objNeedsCulling, DebugInfo debugInfo)
         {  
             /***
             please note that we're skipping the inverse check of objects in order to cull big meshes that are false positives
@@ -134,19 +134,28 @@ namespace _3dGraphics
             Matrix4x4 localToWorld = wObject.LocalToWorldMatrix;
             Matrix4x4 localToProj = localToWorld * worldToProj;
 
-            //we get the mesh localbox in OBB format and we transform it to clip space for easy culling
-            OBBox meshBox = new OBBox(wObject.Mesh.AxisAlignedBoundingBox);
-            OBBox projectedBox = OBBox.TranformOBBox(localToProj, meshBox);
-
-            //we pass the wObject to the culler
-            CullResult objectVisibility = Culler.IsOBBoxInsideClipSpace(projectedBox);
-
-            if (objectVisibility != CullResult.Outside)
+            if (objNeedsCulling)
             {
-                //if the object is partially visible we can skip che clipping stage when rendering
-                bool needClipping = (objectVisibility == CullResult.Partial);
-                RenderObject(wObject, localToProj, viewportMatrix, debugInfo, needClipping);
+                //we get the mesh localbox in OBB format and we transform it to clip space for easy culling
+                OBBox meshBox = new OBBox(wObject.Mesh.AxisAlignedBoundingBox);
+                OBBox projectedBox = OBBox.TranformOBBox(localToProj, meshBox);
+
+                //we pass the wObject to the culler
+                CullResult objectVisibility = Culler.IsOBBoxInsideClipSpace(projectedBox);
+
+                if (objectVisibility != CullResult.Outside)
+                {
+                    //if the object is partially visible we can skip che clipping stage when rendering
+                    bool needsClipping = (objectVisibility == CullResult.Partial);
+                    RenderObject(wObject, localToProj, viewportMatrix, debugInfo, needsClipping);
+                }
             }
+            else
+            {
+                //we don't need to cull, which means we don't need to clip either
+                RenderObject(wObject, localToProj, viewportMatrix, debugInfo, false);
+            }
+            
         }
 
         private void Render()
@@ -161,10 +170,16 @@ namespace _3dGraphics
 
             //we clear our RenderTarget for the new pass
             _renderTarget.Clear();
+            
+            //we run the Quadtree culling in order to determine which object to exclude, which object to check and which object to immediately render
+            List<WorldObject> objsNeedCulling = new List<WorldObject>();
+            List<WorldObject> objsReadyToRender = new List<WorldObject>();
+            Culler.FillCullAndRenderListsFromQuadtree(_world.QuadTree, worldToProj, objsNeedCulling, objsReadyToRender);
 
             //we render each object concurrently (every task will also render each fragment concurrently)            
-            Parallel.ForEach(_world.Objects, (wObj) => CullAndRenderObject(wObj, worldToProj, viewportMatrix, debugInfo));
-           
+            Parallel.ForEach(objsNeedCulling, (wObj) => CullAndRenderObject(wObj, worldToProj, viewportMatrix, true, debugInfo));
+            Parallel.ForEach(objsReadyToRender, (wObj) => CullAndRenderObject(wObj, worldToProj, viewportMatrix, false, debugInfo));
+
             //preparing text to display in the console
             StringBuilder consoleSB = new StringBuilder();
             consoleSB.AppendLine(String.Format("X: {0:F3}", _world.Camera.Position.X));
@@ -232,7 +247,7 @@ namespace _3dGraphics
             }
         }       
 
-        private void RenderObject(WorldObject wObject, Matrix4x4 localToProj, Matrix4x4 viewportMatrix, DebugInfo debugInfo, bool needClipping) 
+        private void RenderObject(WorldObject wObject, Matrix4x4 localToProj, Matrix4x4 viewportMatrix, DebugInfo debugInfo, bool needsClipping) 
         {            
             Mesh mesh = wObject.Mesh;                       //store to avoid repetitive calls
             int numVertices = mesh.VertexCount;             //store to avoid repetitive calls
@@ -306,7 +321,7 @@ namespace _3dGraphics
             List<Triangle> trianglesToRender = new List<Triangle>(numTrianglesToClip);
 
             //triangle clipping
-            if (needClipping)
+            if (needsClipping)
             {
                 for (int tIndex = 0; tIndex < numTrianglesToClip; tIndex++)
                 {
@@ -385,12 +400,12 @@ namespace _3dGraphics
                                 float x = float.Parse(parts[1], CultureInfo.InvariantCulture);
                                 float y = float.Parse(parts[2], CultureInfo.InvariantCulture);
                                 float z = float.Parse(parts[3], CultureInfo.InvariantCulture);
-                                vertices.Add(new Vector4(x, y, -z, 1f));                                    
+                                vertices.Add(new Vector4(x, y, z, 1f));                                    
                                 break;
                             case "vt":
                                 float u = float.Parse(parts[1], CultureInfo.InvariantCulture);
                                 float v = float.Parse(parts[2], CultureInfo.InvariantCulture);
-                                textureCoords.Add(new Vector3(u, 1-v, 1f));
+                                textureCoords.Add(new Vector3(u, v, 1f));
                                 break;
                             case "f":
                                 string[] parameters1 = parts[1].Split('/');
@@ -412,7 +427,7 @@ namespace _3dGraphics
                                     t3 = textureCoords[Int32.Parse(parameters3[1]) - 1];
                                 }
 
-                                triangles.Add(new Triangle(v3 - 1, v2 - 1, v1 - 1, t3, t2, t1, 1f));    //obj file indexes count from 1; we also initialize to MAX luminosity 
+                                triangles.Add(new Triangle(v1 - 1, v2 - 1, v3 - 1, t1, t2, t3, 1f));    //obj file indexes count from 1; we also initialize to MAX luminosity 
                                 break;
                             default:
                                 break;

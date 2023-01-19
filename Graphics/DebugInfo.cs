@@ -8,6 +8,14 @@ namespace _3dGraphics.Graphics
 {
     public class DebugInfo      //not a struct because we need to share this by reference
     {
+        public int ObjectsAfterQuadtreePrune;
+        //the sum of the 2 below should equal ObjectsAfterQuadtreePrune
+        public int ObjectsTotallyInsideAfterPrune;
+        public int ObjectsNeedBoxCulling;
+        //the sum of the 2 below should equal ObjectsNeedBoxCulling
+        public int ObjectsNeedClipping;
+        public int ObjectsTotallyInsideAfterBoxClipping;
+        //
         public int NumVerticesFromObjects;
         public int NumTrianglesFromObjects;
         public int NumTrianglesSentToClip;

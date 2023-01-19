@@ -64,7 +64,7 @@ namespace _3dGraphics.Graphics
             //(by not using an octree we have to use "columns" that spans the whole 3D space in the Y axis)
             //however in this way a tile would never be TOTALLY contained inside the clip volume
             //for this reason we choose to limit our space to -1 and 1 in the Y axis in our tests
-            OBBox nodeBox = new OBBox(new AABBox(tile.MinX, tile.MaxX, -halfSize, halfSize, tile.MinY, tile.MaxY));
+            OBBox nodeBox = new OBBox(new AABBox(tile.MinX, tile.MaxX, -1, 1, tile.MinY, tile.MaxY));
 
             OBBox projBox = OBBox.TranformOBBox(worldToProjMatrix, nodeBox);
             CullResult cullResult = IsOBBoxInsideClipSpace(projBox);  
