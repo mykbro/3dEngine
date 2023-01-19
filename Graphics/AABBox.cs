@@ -42,6 +42,7 @@ namespace _3dGraphics.Graphics
         
         public AABBox(float minX, float maxX, float minY, float maxY, float minZ, float maxZ) : this(new Vector4(minX, minY, minZ, 1) , new Vector4(maxX, maxY, maxZ, 1))
         {            
-        }
+        }       
+
     }
 }

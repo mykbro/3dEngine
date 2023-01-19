@@ -47,6 +47,33 @@ namespace _3dGraphics.Graphics
             _k = new Vector4(aabbox.MinX, aabbox.MinY, aabbox.MaxZ, 1f);
         }
 
+        public AABBox GetSurroundingAxisAlignedBoundingBox()
+        {
+            Vector4[] points = this.Points;
+            float minX, maxX, minY, maxY, minZ, maxZ;      
+         
+            minX = points[0].X;
+            maxX = points[0].X;
+            minY = points[0].Y;
+            maxY = points[0].Y;
+            minZ = points[0].Z;
+            maxZ = points[0].Z;
+
+            for (int i = 1; i < points.Length; i++)
+            {
+                Vector4 temp = points[i];
+
+                minX = MathF.Min(temp.X, minX);
+                maxX = MathF.Max(temp.X, maxX);
+                minY = MathF.Min(temp.Y, minY);
+                maxY = MathF.Max(temp.Y, maxY);
+                minZ = MathF.Min(temp.Z, minZ);
+                maxZ = MathF.Max(temp.Z, maxZ);
+            }
+
+            return new AABBox(minX, maxX, minY, maxY, minZ, maxZ);
+        }
+
         public static OBBox TranformOBBox(Matrix4x4 matrix, OBBox box)
         {
             return new OBBox(Vector4.Transform(box._origin, matrix),

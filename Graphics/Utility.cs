@@ -8,7 +8,7 @@ using System.Windows;
 
 namespace _3dGraphics.Graphics
 {
-    internal static class Utility
+    public static class Utility
     {
         public static float DegToRad(float degrees)
         {
