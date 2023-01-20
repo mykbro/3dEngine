@@ -116,8 +116,6 @@ namespace _3dGraphics.Graphics
 
         private static void FillCullAndRenderListsHelper(QuadtreeNode<WorldObject> node, QuadTile tile, Matrix4x4 worldToProjMatrix, List<WorldObject> objectsThatNeedCulling)
         {
-            int halfSize = tile.HalfSize;
-
             //we construct a 3D box for the tile, using Z for Y (and Y for Z ofc) with a height of halfSize
             //(by not using an octree we have to use "columns" that spans the whole 3D space in the Y axis)
             //however in this way a tile would never be TOTALLY contained inside the clip volume
@@ -132,6 +130,7 @@ namespace _3dGraphics.Graphics
                 case CullResult.Partial:
                     //we add to the cull list all the items on this level and recursively call the function on our children
                     objectsThatNeedCulling.AddRange(node.NodeOnlyItems);
+                    
                     if (node.HasChildren)
                     {
                         for (int i = 0; i < 4; i++)

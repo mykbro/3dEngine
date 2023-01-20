@@ -15,7 +15,7 @@ namespace _3dGraphics.Graphics
         private readonly Camera _camera;
         private float _cameraSpeedMetersSec;
         private float _cameraRotSpeedRadSec;
-        private float _fovIncreaseSpeedDegSec = 10f;
+        private float _fovIncreaseSpeedDegSec;
 
         //
         public int ObjectCount => _worldObjects.Count;
@@ -26,10 +26,10 @@ namespace _3dGraphics.Graphics
         public float CameraRotSpeedDegSec { get => Utility.RadToDeg(_cameraRotSpeedRadSec); set => Utility.DegToRad(value); }
         
         //
-        public World(int screenWidth, int screenHeight, float cameraFov, float cameraZNear, float cameraZFar, float cameraSpeedKmh, float cameraRotSpeedDegSec, float fovIncSpeedDegSec)
+        public World(int screenWidth, int screenHeight, float cameraFov, float cameraZNear, float cameraZFar, float cameraSpeedKmh, float cameraRotSpeedDegSec, float fovIncSpeedDegSec, float halfSize)
         {
             _worldObjects = new List<WorldObject>();
-            _quadtree = new Quadtree<WorldObject>(1024, 7);
+            _quadtree = new Quadtree<WorldObject>(halfSize, 8);     //we hardwire the depth value
             _camera = new Camera(screenWidth, screenHeight, cameraFov, cameraZNear, cameraZFar);
             _cameraSpeedMetersSec = cameraSpeedKmh / 3.6f;
             _cameraRotSpeedRadSec = Utility.DegToRad(cameraRotSpeedDegSec);
@@ -51,6 +51,7 @@ namespace _3dGraphics.Graphics
         { 
             _worldObjects.Add(wObject);
 
+            //we calculate the objects box and add it to the Quadtree (if its OBB is inside, also its surrounding AABB is)
             OBBox meshBox = new OBBox(wObject.Mesh.AxisAlignedBoundingBox);
             OBBox worldBox = OBBox.TranformOBBox(wObject.LocalToWorldMatrix, meshBox);
             AABBox surroundingBox = worldBox.GetSurroundingAxisAlignedBoundingBox();

@@ -8,21 +8,21 @@ namespace _3dGraphics.Graphics
     public class Quadtree<T>
     {
         private readonly QuadtreeNode<T> _lvlZeroNode;
-        private readonly float _size;           //width/length of the lvl0 node
+        private readonly float _halfSize;           //width/length of the lvl0 node
         private readonly int _maxDepth;         //lowest level we want to reach (starts from 1)
         private readonly QuadTile _lvlZeroTile; //precomputed from size        
 
         public List<T> Items => _lvlZeroNode.AllItems;
         public QuadTile RootTile => _lvlZeroTile;
         public QuadtreeNode<T> RootNode => _lvlZeroNode;
+        public float HalfSize => _halfSize;
         
-        public Quadtree(int size, int maxDepth)
+        public Quadtree(float halfSize, int maxDepth)
         {
             _lvlZeroNode = new QuadtreeNode<T>();            
             _maxDepth = maxDepth;
-            _size = size;
-
-            int halfSize = size / 2;
+            _halfSize = halfSize;
+           
             _lvlZeroTile = new QuadTile(0, 0, halfSize);
         }
 
@@ -165,19 +165,19 @@ namespace _3dGraphics.Graphics
 
         public static QuadTile GetChildTile(QuadTile parentTile, int childrenNr)
         {
-            int quarterSize = parentTile.HalfSize / 2;
+            float childSize = parentTile.HalfSize * 0.5f;
             
             //clockwise order starting from top-left=0 ending to bottom-left=3
             switch (childrenNr)
             {
                 case 0:
-                    return new QuadTile(parentTile.CenterX - quarterSize, parentTile.CenterY + quarterSize, quarterSize);
+                    return new QuadTile(parentTile.CenterX - childSize, parentTile.CenterY + childSize, childSize);
                 case 1:
-                    return new QuadTile(parentTile.CenterX + quarterSize, parentTile.CenterY + quarterSize, quarterSize);
+                    return new QuadTile(parentTile.CenterX + childSize, parentTile.CenterY + childSize, childSize);
                 case 2:
-                    return new QuadTile(parentTile.CenterX + quarterSize, parentTile.CenterY - quarterSize, quarterSize);
+                    return new QuadTile(parentTile.CenterX + childSize, parentTile.CenterY - childSize, childSize);
                 case 3:
-                    return new QuadTile(parentTile.CenterX - quarterSize, parentTile.CenterY - quarterSize, quarterSize);
+                    return new QuadTile(parentTile.CenterX - childSize, parentTile.CenterY - childSize, childSize);
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -189,20 +189,20 @@ namespace _3dGraphics.Graphics
     public readonly struct QuadTile 
     {
         //we want to use integers for fast division by 2
-        private readonly int _centerX;
-        private readonly int _centerY;
-        private readonly int _halfSize;
+        private readonly float _centerX;
+        private readonly float _centerY;
+        private readonly float _halfSize;
 
-        public int CenterX => _centerX;
-        public int CenterY => _centerY;
-        public int HalfSize => _halfSize;
+        public float CenterX => _centerX;
+        public float CenterY => _centerY;
+        public float HalfSize => _halfSize;
 
-        public int MinX => (_centerX - _halfSize);
-        public int MaxX => (_centerX + _halfSize);
-        public int MinY => (_centerY - _halfSize);
-        public int MaxY => (_centerY + _halfSize);
+        public float MinX => (_centerX - _halfSize);
+        public float MaxX => (_centerX + _halfSize);
+        public float MinY => (_centerY - _halfSize);
+        public float MaxY => (_centerY + _halfSize);
 
-        public QuadTile(int centerX, int centerY, int halfSize)
+        public QuadTile(float centerX, float centerY, float halfSize)
         {
             _centerX = centerX;
             _centerY = centerY;

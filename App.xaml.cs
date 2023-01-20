@@ -71,13 +71,14 @@ namespace _3dGraphics
             
             float FOV = 90f;
             float zNear = 0.05f;
-            float zFar = 50f;
+            float zFar = 75;
             float speedKmh = 6f;
             float rotSpeedDegSec = 60f;
             float fovIncSpeedDegSec = 30f;
+            float halfSize = 512f;
 
             //we create the world and populate it with objects
-            _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec);
+            _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec, halfSize);
 
             Generate100Cubes();            
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\Ganesha\Ganesha.obj.txt", true);
@@ -115,11 +116,11 @@ namespace _3dGraphics
         {
             Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt", true);
 
-            for(int i=-500; i<500; i++)
+            for(int i=-250; i<250; i++)
             {
-                for(int j=-500; j<500; j++)
+                for(int j=-250; j<250; j++)
                 {
-                    _world.AddWorldObject(new WorldObject(objToLoad, new Vector3(i*1, 0, j*1), 1f));
+                    _world.AddWorldObject(new WorldObject(objToLoad, new Vector3(i*2, 0, j*2), 1f));
                 }
             }
         }
