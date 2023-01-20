@@ -163,11 +163,11 @@ namespace _3dGraphics
             _renderTarget.Clear();
             
             //we run the Quadtree culling in order to determine which object to exclude, which object to check and which object to immediately render
-            List<WorldObject> objsNeedCulling = new List<WorldObject>();           
-            Culler.FillCullAndRenderListsFromQuadtree(_world.QuadTree, worldToProj, objsNeedCulling);
+            List<WorldObject> visibleObjectsFromQuadtree = Culler.GetVisibleObjectsFromQuadtree(_world.QuadTree, worldToProj);
+
 
             //we render each object concurrently (every task will also render each fragment concurrently)            
-            Parallel.ForEach(objsNeedCulling, (wObj) => CullAndRenderObject(wObj, worldToProj, viewportMatrix, debugInfo));           
+            Parallel.ForEach(visibleObjectsFromQuadtree, (wObj) => CullAndRenderObject(wObj, worldToProj, viewportMatrix, debugInfo));           
 
             //preparing text to display in the console
             StringBuilder consoleSB = new StringBuilder();
@@ -182,7 +182,7 @@ namespace _3dGraphics
             consoleSB.AppendLine(String.Format("FOV: {0:F3}", _world.Camera.FOV));
             consoleSB.AppendLine();
             consoleSB.AppendLine(String.Format("Total objects: {0}", _world.ObjectCount));
-            consoleSB.AppendLine(String.Format("Objects after QT prune: {0}", objsNeedCulling.Count));
+            consoleSB.AppendLine(String.Format("Objects after QT prune: {0}", visibleObjectsFromQuadtree.Count));
             consoleSB.AppendLine(String.Format("Objects rendered: {0}", debugInfo.ObjectsRendered));           
             consoleSB.AppendLine();                               
             consoleSB.AppendLine(String.Format("Vertices: {0}", debugInfo.NumVerticesFromObjects));

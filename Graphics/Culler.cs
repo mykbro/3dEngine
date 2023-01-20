@@ -109,12 +109,15 @@ namespace _3dGraphics.Graphics
             }
         }
 
-        public static void FillCullAndRenderListsFromQuadtree(Quadtree<WorldObject> qTree, Matrix4x4 worldToProjMatrix, List<WorldObject> objectsThatNeedCulling)
+        public static List<WorldObject> GetVisibleObjectsFromQuadtree(Quadtree<WorldObject> qTree, Matrix4x4 worldToProjMatrix)
         {
-            FillCullAndRenderListsHelper(qTree.RootNode, qTree.RootTile, worldToProjMatrix, objectsThatNeedCulling);
+            List<WorldObject> visibleObjects = new List<WorldObject>();
+            GetVisibleObjectsFromQuadtreeHelper(qTree.RootNode, qTree.RootTile, worldToProjMatrix, visibleObjects);
+
+            return visibleObjects;
         }
 
-        private static void FillCullAndRenderListsHelper(QuadtreeNode<WorldObject> node, QuadTile tile, Matrix4x4 worldToProjMatrix, List<WorldObject> objectsThatNeedCulling)
+        private static void GetVisibleObjectsFromQuadtreeHelper(QuadtreeNode<WorldObject> node, QuadTile tile, Matrix4x4 worldToProjMatrix, List<WorldObject> outputList)
         {
             //we construct a 3D box for the tile, using Z for Y (and Y for Z ofc) with a height of halfSize
             //(by not using an octree we have to use "columns" that spans the whole 3D space in the Y axis)
@@ -129,7 +132,7 @@ namespace _3dGraphics.Graphics
             {
                 case CullResult.Partial:
                     //we add to the cull list all the items on this level and recursively call the function on our children
-                    objectsThatNeedCulling.AddRange(node.NodeOnlyItems);
+                    outputList.AddRange(node.NodeOnlyItems);
                     
                     if (node.HasChildren)
                     {
@@ -139,7 +142,7 @@ namespace _3dGraphics.Graphics
                             if (childNode != null)
                             {
                                 QuadTile childTile = QuadtreeNode<WorldObject>.GetChildTile(tile, i);
-                                FillCullAndRenderListsHelper(childNode, childTile, worldToProjMatrix, objectsThatNeedCulling);
+                                GetVisibleObjectsFromQuadtreeHelper(childNode, childTile, worldToProjMatrix, outputList);
                             }
                         }
                     }
@@ -147,7 +150,56 @@ namespace _3dGraphics.Graphics
 
                 case CullResult.Inside:
                     //if the node is totally inside we're done, just need to recursively add all of its items to the renderlist (they'll all be totally inside too)
-                    objectsThatNeedCulling.AddRange(node.AllItems);
+                    outputList.AddRange(node.AllItems);
+                    break;
+
+                case CullResult.Outside:
+                    //we're done, do nothing
+                    break;
+            }
+
+        }
+
+        //
+
+        public static List<WorldObject> GetVisibleObjectsFromOctree(Octree<WorldObject> octree, Matrix4x4 worldToProjMatrix)
+        {
+            List<WorldObject> visibleObjects = new List<WorldObject>();
+            GetVisibleObjectsFromOctreeHelper(octree.RootNode, octree.RootCube, worldToProjMatrix, visibleObjects);
+
+            return visibleObjects;
+        }
+
+        private static void GetVisibleObjectsFromOctreeHelper(OctreeNode<WorldObject> node, OctCube cube, Matrix4x4 worldToProjMatrix, List<WorldObject> outputList)
+        {
+           
+            OBBox nodeBox = new OBBox(new AABBox(cube.MinX, cube.MaxX, cube.MinY, cube.MaxY, cube.MinZ, cube.MaxZ));
+            OBBox projBox = OBBox.TranformOBBox(worldToProjMatrix, nodeBox);
+            CullResult cullResult = IsOBBoxInsideClipSpace(projBox);
+
+            switch (cullResult)
+            {
+                case CullResult.Partial:
+                    //we add to the cull list all the items on this level and recursively call the function on our children
+                    outputList.AddRange(node.NodeOnlyItems);
+
+                    if (node.HasChildren)
+                    {
+                        for (int i = 0; i < 8; i++)
+                        {
+                            OctreeNode<WorldObject>? childNode = node.GetChildren(i);
+                            if (childNode != null)
+                            {
+                                OctCube childCube = OctreeNode<WorldObject>.GetChildCube(cube, i);
+                                GetVisibleObjectsFromOctreeHelper(childNode, childCube, worldToProjMatrix, outputList);
+                            }
+                        }
+                    }
+                    break;
+
+                case CullResult.Inside:
+                    //if the node is totally inside we're done, just need to recursively add all of its items to the renderlist (they'll all be totally inside too)
+                    outputList.AddRange(node.AllItems);
                     break;
 
                 case CullResult.Outside:
