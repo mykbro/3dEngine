@@ -15,7 +15,6 @@ namespace _3dGraphics.Graphics
         private readonly AABBox _boundingBox;
 
         // PROPERTIES
-
         public IEnumerable<Vector4> Vertices => _vertices;        
         public IEnumerable<Triangle> Triangles => _triangles;
         public IEnumerable<Vector3> Normals => _triangleNormals;
@@ -25,7 +24,6 @@ namespace _3dGraphics.Graphics
         public AABBox AxisAlignedBoundingBox => _boundingBox;
 
         // CONSTRUCTORS
-
         public Mesh(IEnumerable<Vector4> vertices, IEnumerable<Triangle> triangles)
         {
             _vertices = vertices.ToArray();     //copy          
@@ -45,7 +43,6 @@ namespace _3dGraphics.Graphics
         }
 
         // METHODS
-
         public Vector4 GetVertex(int index)
         {
             return _vertices[index];
@@ -67,8 +64,8 @@ namespace _3dGraphics.Graphics
             //we follow the clockwise vertices declaration  
             Triangle t = _triangles[triangleIndex];
 
-            Vector3 firstEdge = Vec4ToVec3(_vertices[t.V2Index]) - Vec4ToVec3(_vertices[t.V1Index]);
-            Vector3 secondEdge = Vec4ToVec3(_vertices[t.V3Index]) - Vec4ToVec3(_vertices[t.V1Index]);
+            Vector3 firstEdge = _vertices[t.V2Index].ToVector3() - _vertices[t.V1Index].ToVector3();
+            Vector3 secondEdge = _vertices[t.V3Index].ToVector3() - _vertices[t.V1Index].ToVector3();
             Vector3 crossP = Vector3.Cross(firstEdge, secondEdge);
 
             return Vector3.Normalize(crossP);
@@ -96,6 +93,7 @@ namespace _3dGraphics.Graphics
                 minZ = _vertices[0].Z;
                 maxZ = _vertices[0].Z;
 
+                //we start from 1 because we've already managed [0]
                 for (int i = 1; i < _vertices.Length; i++)
                 {
                     Vector4 temp = _vertices[i];
@@ -118,11 +116,6 @@ namespace _3dGraphics.Graphics
             }
 
             return new AABBox(minPoint, maxPoint);            
-        }
-        
-        private Vector3 Vec4ToVec3(Vector4 v)
-        {
-            return new Vector3(v.X, v.Y, v.Z);
-        }
+        } 
     }
 }

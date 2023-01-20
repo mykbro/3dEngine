@@ -282,6 +282,7 @@ namespace _3dGraphics.Graphics
             Vector4 newV = pInterpolated - pInside;
             Vector4 oldV = pOutside - pInside;
 
+            //it's better to do sqrt(x^2/y^2) than sqrt(x^2)/sqrt(y^2)
             float newNormSquared = Vector4.Dot(newV, newV);
             float oldNormSquared = Vector4.Dot(oldV, oldV);
             float toReturn = MathF.Sqrt(newNormSquared / oldNormSquared);

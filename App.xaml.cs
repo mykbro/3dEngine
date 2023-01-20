@@ -3,10 +3,7 @@ using _3dGraphics.Tests;
 using _3dGraphics.Windows;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
 using System.Diagnostics;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Windows;
@@ -15,14 +12,8 @@ using System.Windows.Threading;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Text;
-using System.Windows.Shapes;
-using System.Reflection;
 using System.IO;
 using System.Globalization;
-using PointF = System.Drawing.PointF;
-using System.Windows.Media.Imaging;
-using System.Xml.Linq;
-
 namespace _3dGraphics
 {
     /// <summary>
@@ -33,15 +24,19 @@ namespace _3dGraphics
         private World _world;
         private MainWindow _mainWindow;
         private ConsoleWindow _console;
-        private Vector3 _cameraForwardMovement;     // 0 or 1
+		private RenderTarget _renderTarget;
+		private Texture _myTexture;
+
+        // these are used for world update
+        // (we could have used a lot of bools to describe every isXKeyPressed and then compute these on the fly.. same thing)
+		private Vector3 _cameraForwardMovement;     // 0 or 1
         private Vector3 _cameraBackwardMovement;    // 0 or 1
         private Vector3 _cameraPositiveRotation;
         private Vector3 _cameraNegativeRotation;
         private float _fovIncrease; //0 or 1
         private float _fovDecrease; //0 or 1
-        private RenderTarget _renderTarget;
-        private Texture _myTexture;
-
+        
+        // cache 0.333333.. for triangle barycenter calculation
         private const float ONE_THIRD = 1 / 3f;
         
         
@@ -68,59 +63,65 @@ namespace _3dGraphics
 
         private void CreateWorld(int screenWidth, int screenHeight)
         {  
-            
+            //world parameters
             float FOV = 90f;
             float zNear = 0.05f;
             float zFar = 75;
             float speedKmh = 6f;
             float rotSpeedDegSec = 60f;
             float fovIncSpeedDegSec = 30f;
-            float halfSize = 512f;
+            float worldspaceHalfSizeMeters = 512f;
 
             //we create the world and populate it with objects
-            _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec, halfSize);
+            _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec, worldspaceHalfSizeMeters);
 
-            Generate100Cubes();            
-            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\Ganesha\Ganesha.obj.txt", true);
+            //GenerateManyObjects();            
+            Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\Ganesha\Ganesha.obj.txt", true);
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\alduin\alduin.obj.txt", true);
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt", false);
+            //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\dragon.txt", false);
 
-            //_world.AddWorldObject(new WorldObject(objToLoad, Vector3.Zero, 1f));
-            
-            //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 0f), 1f));
-            //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(10f, 0f, 10f), 1f));
-            //_world.Objects.Add(new WorldObject(objToLoad, new Vector3(0f, 0f, 10f), 1f));
+            _world.AddWorldObject(new WorldObject(objToLoad, Vector3.Zero, 1f));       
+
 
             _world.Camera.MoveBy(new Vector3(0f, 3f, -6f));
             //_world.Camera.MoveBy(new Vector3(0.5f, 3f, 0.5f));
             //_world.Camera.RotateBy(new Vector3(1.5f, 4f, 0));
 
 
-            //big distances test            
-            //float d = 2e6f;
-            //Vector3 movement = Vector3.One * d;
-            //_world.Camera.MoveBy(movement);
-            //foreach (WorldObject obj in _world.Objects)
-            //{
-            //    obj.MoveBy(movement);
-            //}
-
+            /* Big distances test            
+             
+             float d = 2e6f;
+             Vector3 movement = Vector3.One * d;
+             _world.Camera.MoveBy(movement);
+             foreach (WorldObject obj in _world.Objects)
+             {
+                 obj.MoveBy(movement);
+             }
+            
+            */
 
             //_myTexture = new Texture(@"D:\Objs\alduin\alduin.jpg");
-            //_myTexture = new Texture(@"D:\Objs\Ganesha\Ganesha.png");
-            //_myTexture = new Texture(@"D:\Objs\white.bmp
-            _myTexture = new Texture(@"D:\Objs\smile.bmp");
+            _myTexture = new Texture(@"D:\Objs\Ganesha\Ganesha.png");
+            //_myTexture = new Texture(@"D:\Objs\white.bmp");
+            //_myTexture = new Texture(@"D:\Objs\smile.bmp");
         }
 
-        private void Generate100Cubes()
+        private void GenerateManyObjects()
         {
             Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt", true);
 
-            for(int i=-250; i<250; i++)
+            int val = 16;
+            
+            for(int i=-val; i< val; i++)
             {
-                for(int j=-250; j<250; j++)
+                for(int j=-val; j<val; j++)
                 {
-                    _world.AddWorldObject(new WorldObject(objToLoad, new Vector3(i*2, 0, j*2), 1f));
+                    for(int z = -val; z<val; z++)
+                    {
+                        _world.AddWorldObject(new WorldObject(objToLoad, new Vector3(i * 2, j * 2, z * 2), 1f));
+                    }
+                   
                 }
             }
         }
@@ -131,7 +132,7 @@ namespace _3dGraphics
             please note that we're skipping the inverse check of objects in order to cull big meshes that are false positives
             ****/
 
-            //we calculate some matrixes (that we can use later in the render process)
+            //we calculate some matrixes (that we can use later in the render process... that's why we both cull and render in the same function)
             Matrix4x4 localToWorld = wObject.LocalToWorldMatrix;
             Matrix4x4 localToProj = localToWorld * worldToProj;
 
@@ -184,7 +185,7 @@ namespace _3dGraphics
             consoleSB.AppendLine();
             consoleSB.AppendLine(String.Format("Total objects: {0}", _world.ObjectCount));
             consoleSB.AppendLine(String.Format("Objects after QT prune: {0}", visibleObjectsFromOctree.Count));
-            consoleSB.AppendLine(String.Format("Objects rendered: {0}", debugInfo.ObjectsRendered));           
+            consoleSB.AppendLine(String.Format("Objects sent to render: {0}", debugInfo.ObjectsRendered));           
             consoleSB.AppendLine();                               
             consoleSB.AppendLine(String.Format("Vertices: {0}", debugInfo.NumVerticesFromObjects));
             consoleSB.AppendLine(String.Format("Triangles (meshes): {0}", debugInfo.NumTrianglesFromObjects));
@@ -220,14 +221,18 @@ namespace _3dGraphics
                 double timeInSecs = (globalWatch.ElapsedTicks * 1.0) / Stopwatch.Frequency;
                 float deltaTimeInSecs = (float) (timeInSecs - lastCycleTimeInSecs);
 
+                //calculate total camera movement
                 Vector3 cameraMovement = _cameraForwardMovement - _cameraBackwardMovement; 
                 if (cameraMovement != Vector3.Zero)
                     cameraMovement = Vector3.Normalize(cameraMovement);
 
+                //calculate total camera rotation
                 Vector3 cameraRotation = _cameraPositiveRotation - _cameraNegativeRotation;
+                
+                //calculate total camera delta FOV
                 float fovChange = _fovIncrease - _fovDecrease;
 
-                _world.Update(deltaTimeInSecs, cameraMovement, cameraRotation, fovChange);
+                _world.Update(deltaTimeInSecs, cameraMovement, cameraRotation, fovChange);                
                 await RenderAsync();
                 //await Task.Delay(1);        //to keep the FPS at bay
 
@@ -272,9 +277,9 @@ namespace _3dGraphics
             {
                 Triangle tempTriangle = mesh.GetTriangle(tIndex);
 
-                Vector3 v1 = Utility.Vec4ToVec3(vertices4D[tempTriangle.V1Index]);
-                Vector3 v2 = Utility.Vec4ToVec3(vertices4D[tempTriangle.V2Index]);
-                Vector3 v3 = Utility.Vec4ToVec3(vertices4D[tempTriangle.V3Index]);
+                Vector3 v1 = vertices4D[tempTriangle.V1Index].ToVector3();
+                Vector3 v2 = vertices4D[tempTriangle.V2Index].ToVector3();
+                Vector3 v3 = vertices4D[tempTriangle.V3Index].ToVector3();
 
                 Vector3 triangleBarycenter = (v1 + v2 + v3) * ONE_THIRD;
                 Vector3 pointToCameraVec = cameraPosInObjSpace - triangleBarycenter;
@@ -350,6 +355,12 @@ namespace _3dGraphics
 
             //we finally send the triangle to render
             Parallel.ForEach(trianglesToRender, (t) => _renderTarget.RenderFragment(t, vertices4D, _myTexture));
+            /*
+            foreach(Triangle t in trianglesToRender)
+            {
+                _renderTarget.RenderFragment(t, vertices4D, _myTexture);
+            }
+            */
 
             lock (debugInfo)
             {
@@ -381,12 +392,12 @@ namespace _3dGraphics
                                 float x = float.Parse(parts[1], CultureInfo.InvariantCulture);
                                 float y = float.Parse(parts[2], CultureInfo.InvariantCulture);
                                 float z = float.Parse(parts[3], CultureInfo.InvariantCulture);
-                                vertices.Add(new Vector4(x, y, z, 1f));                                    
+                                vertices.Add(new Vector4(x, y, -z, 1f));                                    
                                 break;
                             case "vt":
                                 float u = float.Parse(parts[1], CultureInfo.InvariantCulture);
                                 float v = float.Parse(parts[2], CultureInfo.InvariantCulture);
-                                textureCoords.Add(new Vector3(u, v, 1f));
+                                textureCoords.Add(new Vector3(u, 1-v, 1f));
                                 break;
                             case "f":
                                 string[] parameters1 = parts[1].Split('/');
@@ -408,7 +419,7 @@ namespace _3dGraphics
                                     t3 = textureCoords[Int32.Parse(parameters3[1]) - 1];
                                 }
 
-                                triangles.Add(new Triangle(v1 - 1, v2 - 1, v3 - 1, t1, t2, t3, 1f));    //obj file indexes count from 1; we also initialize to MAX luminosity 
+                                triangles.Add(new Triangle(v3 - 1, v2 - 1, v1 - 1, t3, t2, t1, 1f));    //obj file indexes count from 1; we also initialize to MAX luminosity 
                                 break;
                             default:
                                 break;

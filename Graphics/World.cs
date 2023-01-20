@@ -62,6 +62,11 @@ namespace _3dGraphics.Graphics
         { 
             return _worldObjects[i];
         }
+
+        public void MoveObjectBy(int numObj, Vector3 deltaPos)
+        {
+            _worldObjects[numObj].MoveBy(deltaPos);
+        }
         
         public void Update(float dTimeInSecs, Vector3 cameraVelocityNormalized, Vector3 cameraRotation, float fovIncrease)
         {                        

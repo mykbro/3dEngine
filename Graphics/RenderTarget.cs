@@ -37,9 +37,9 @@ namespace _3dGraphics.Graphics
 
         public void RenderFragment(Triangle fragment, List<Vector4> vertices, Texture texture)
         {
-            Vector3 p1 = Utility.Vec4ToVec3(vertices[fragment.V1Index]);
-            Vector3 p2 = Utility.Vec4ToVec3(vertices[fragment.V2Index]);
-            Vector3 p3 = Utility.Vec4ToVec3(vertices[fragment.V3Index]);
+            Vector3 p1 = vertices[fragment.V1Index].ToVector3();
+            Vector3 p2 = vertices[fragment.V2Index].ToVector3();
+            Vector3 p3 = vertices[fragment.V3Index].ToVector3();
 
             Vector3 t1 = fragment.T1;
             Vector3 t2 = fragment.T2;

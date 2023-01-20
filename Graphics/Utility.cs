@@ -42,7 +42,8 @@ namespace _3dGraphics.Graphics
             return (angle + TwoPI) % TwoPI;
         }
 
-        public static Vector3 Vec4ToVec3(Vector4 v)
+        //extension method for Vector4
+        public static Vector3 ToVector3(this Vector4 v)
         {
             return new Vector3(v.X, v.Y, v.Z);
         }

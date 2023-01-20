@@ -108,60 +108,7 @@ namespace _3dGraphics.Graphics
                     return false;
             }
         }
-
-        public static List<WorldObject> GetVisibleObjectsFromQuadtree(Quadtree<WorldObject> qTree, Matrix4x4 worldToProjMatrix)
-        {
-            List<WorldObject> visibleObjects = new List<WorldObject>();
-            GetVisibleObjectsFromQuadtreeHelper(qTree.RootNode, qTree.RootTile, worldToProjMatrix, visibleObjects);
-
-            return visibleObjects;
-        }
-
-        private static void GetVisibleObjectsFromQuadtreeHelper(QuadtreeNode<WorldObject> node, QuadTile tile, Matrix4x4 worldToProjMatrix, List<WorldObject> outputList)
-        {
-            //we construct a 3D box for the tile, using Z for Y (and Y for Z ofc) with a height of halfSize
-            //(by not using an octree we have to use "columns" that spans the whole 3D space in the Y axis)
-            //however in this way a tile would never be TOTALLY contained inside the clip volume
-            //for this reason we choose to limit our space to -1 and 1 in the Y axis in our tests
-            OBBox nodeBox = new OBBox(new AABBox(tile.MinX, tile.MaxX, -1, 1, tile.MinY, tile.MaxY));
-
-            OBBox projBox = OBBox.TranformOBBox(worldToProjMatrix, nodeBox);
-            CullResult cullResult = IsOBBoxInsideClipSpace(projBox);
-
-            switch (cullResult)
-            {
-                case CullResult.Partial:
-                    //we add to the cull list all the items on this level and recursively call the function on our children
-                    outputList.AddRange(node.NodeOnlyItems);
-                    
-                    if (node.HasChildren)
-                    {
-                        for (int i = 0; i < 4; i++)
-                        {
-                            QuadtreeNode<WorldObject>? childNode = node.GetChildren(i);
-                            if (childNode != null)
-                            {
-                                QuadTile childTile = QuadtreeNode<WorldObject>.GetChildTile(tile, i);
-                                GetVisibleObjectsFromQuadtreeHelper(childNode, childTile, worldToProjMatrix, outputList);
-                            }
-                        }
-                    }
-                    break;
-
-                case CullResult.Inside:
-                    //if the node is totally inside we're done, just need to recursively add all of its items to the renderlist (they'll all be totally inside too)
-                    outputList.AddRange(node.AllItems);
-                    break;
-
-                case CullResult.Outside:
-                    //we're done, do nothing
-                    break;
-            }
-
-        }
-
-        //
-
+   
         public static List<WorldObject> GetVisibleObjectsFromOctree(Octree<WorldObject> octree, Matrix4x4 worldToProjMatrix)
         {
             List<WorldObject> visibleObjects = new List<WorldObject>();

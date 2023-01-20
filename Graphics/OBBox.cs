@@ -9,6 +9,7 @@ namespace _3dGraphics.Graphics
 {
     public readonly struct OBBox
     {
+        //An Oriented Bounding Box is defined by 4 vectors
         private readonly Vector4 _origin;
         private readonly Vector4 _i;
         private readonly Vector4 _j;
