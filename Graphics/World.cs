@@ -11,7 +11,7 @@ namespace _3dGraphics.Graphics
     public class World
     {
         private readonly List<WorldObject> _worldObjects;
-        private readonly Quadtree<WorldObject> _quadtree;
+        private readonly Octree<WorldObject> _octree;
         private readonly Camera _camera;
         private float _cameraSpeedMetersSec;
         private float _cameraRotSpeedRadSec;
@@ -21,7 +21,7 @@ namespace _3dGraphics.Graphics
         public int ObjectCount => _worldObjects.Count;
         public IEnumerable<WorldObject> Objects => _worldObjects;
         public Camera Camera => _camera;
-        public Quadtree<WorldObject> QuadTree => _quadtree;
+        public Octree<WorldObject> Octree => _octree;
         public float CameraSpeedKmh { get => _cameraSpeedMetersSec * 3.6f; set => _cameraSpeedMetersSec = value / 3.6f; }
         public float CameraRotSpeedDegSec { get => Utility.RadToDeg(_cameraRotSpeedRadSec); set => Utility.DegToRad(value); }
         
@@ -29,7 +29,7 @@ namespace _3dGraphics.Graphics
         public World(int screenWidth, int screenHeight, float cameraFov, float cameraZNear, float cameraZFar, float cameraSpeedKmh, float cameraRotSpeedDegSec, float fovIncSpeedDegSec, float halfSize)
         {
             _worldObjects = new List<WorldObject>();
-            _quadtree = new Quadtree<WorldObject>(halfSize, 8);     //we hardwire the depth value
+            _octree = new Octree<WorldObject>(halfSize, 8);     //we hardwire the depth value
             _camera = new Camera(screenWidth, screenHeight, cameraFov, cameraZNear, cameraZFar);
             _cameraSpeedMetersSec = cameraSpeedKmh / 3.6f;
             _cameraRotSpeedRadSec = Utility.DegToRad(cameraRotSpeedDegSec);
@@ -40,7 +40,7 @@ namespace _3dGraphics.Graphics
         public World(World w)
         {                
             _worldObjects = new List<WorldObject>(w._worldObjects);
-            _quadtree = w._quadtree;
+            _octree = w._octree;
             _camera = new Camera(w._camera);
             _cameraSpeedMetersSec = w._cameraSpeedMetersSec;
             _cameraRotSpeedRadSec = w._cameraRotSpeedRadSec;
@@ -55,7 +55,7 @@ namespace _3dGraphics.Graphics
             OBBox meshBox = new OBBox(wObject.Mesh.AxisAlignedBoundingBox);
             OBBox worldBox = OBBox.TranformOBBox(wObject.LocalToWorldMatrix, meshBox);
             AABBox surroundingBox = worldBox.GetSurroundingAxisAlignedBoundingBox();
-            _quadtree.Add(wObject, surroundingBox);
+            _octree.Add(wObject, surroundingBox);
         }
 
         public WorldObject GetWorldObject(int i)
