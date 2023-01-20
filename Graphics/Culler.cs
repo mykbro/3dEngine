@@ -109,12 +109,12 @@ namespace _3dGraphics.Graphics
             }
         }
 
-        public static void FillCullAndRenderListsFromQuadtree(Quadtree<WorldObject> qTree, Matrix4x4 worldToProjMatrix, List<WorldObject> objectsThatNeedCulling, List<WorldObject> objectsReadyForRender)
+        public static void FillCullAndRenderListsFromQuadtree(Quadtree<WorldObject> qTree, Matrix4x4 worldToProjMatrix, List<WorldObject> objectsThatNeedCulling)
         {
-            FillCullAndRenderListsHelper(qTree.RootNode, qTree.RootTile, worldToProjMatrix, objectsThatNeedCulling, objectsReadyForRender);
+            FillCullAndRenderListsHelper(qTree.RootNode, qTree.RootTile, worldToProjMatrix, objectsThatNeedCulling);
         }
 
-        private static void FillCullAndRenderListsHelper(QuadtreeNode<WorldObject> node, QuadTile tile, Matrix4x4 worldToProjMatrix, List<WorldObject> objectsThatNeedCulling, List<WorldObject> objectsReadyForRender)
+        private static void FillCullAndRenderListsHelper(QuadtreeNode<WorldObject> node, QuadTile tile, Matrix4x4 worldToProjMatrix, List<WorldObject> objectsThatNeedCulling)
         {
             int halfSize = tile.HalfSize;
 
@@ -140,7 +140,7 @@ namespace _3dGraphics.Graphics
                             if (childNode != null)
                             {
                                 QuadTile childTile = QuadtreeNode<WorldObject>.GetChildTile(tile, i);
-                                FillCullAndRenderListsHelper(childNode, childTile, worldToProjMatrix, objectsThatNeedCulling, objectsReadyForRender);
+                                FillCullAndRenderListsHelper(childNode, childTile, worldToProjMatrix, objectsThatNeedCulling);
                             }
                         }
                     }
@@ -148,7 +148,7 @@ namespace _3dGraphics.Graphics
 
                 case CullResult.Inside:
                     //if the node is totally inside we're done, just need to recursively add all of its items to the renderlist (they'll all be totally inside too)
-                    objectsReadyForRender.AddRange(node.AllItems);
+                    objectsThatNeedCulling.AddRange(node.AllItems);
                     break;
 
                 case CullResult.Outside:

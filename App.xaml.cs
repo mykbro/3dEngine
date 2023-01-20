@@ -71,7 +71,7 @@ namespace _3dGraphics
             
             float FOV = 90f;
             float zNear = 0.05f;
-            float zFar = 100f;
+            float zFar = 50f;
             float speedKmh = 6f;
             float rotSpeedDegSec = 60f;
             float fovIncSpeedDegSec = 30f;
@@ -115,16 +115,16 @@ namespace _3dGraphics
         {
             Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\cube.txt", true);
 
-            for(int i=-250; i<250; i++)
+            for(int i=-500; i<500; i++)
             {
-                for(int j=-250; j<250; j++)
+                for(int j=-500; j<500; j++)
                 {
-                    _world.AddWorldObject(new WorldObject(objToLoad, new Vector3(i*2, 0, j*2), 1f));
+                    _world.AddWorldObject(new WorldObject(objToLoad, new Vector3(i*1, 0, j*1), 1f));
                 }
             }
         }
 
-        private void CullAndRenderObject(WorldObject wObject, Matrix4x4 worldToProj, Matrix4x4 viewportMatrix, bool objNeedsCulling, DebugInfo debugInfo)
+        private void CullAndRenderObject(WorldObject wObject, Matrix4x4 worldToProj, Matrix4x4 viewportMatrix, DebugInfo debugInfo)
         {  
             /***
             please note that we're skipping the inverse check of objects in order to cull big meshes that are false positives
@@ -134,36 +134,18 @@ namespace _3dGraphics
             Matrix4x4 localToWorld = wObject.LocalToWorldMatrix;
             Matrix4x4 localToProj = localToWorld * worldToProj;
 
-            if (objNeedsCulling)
-            {
-                //we get the mesh localbox in OBB format and we transform it to clip space for easy culling
-                OBBox meshBox = new OBBox(wObject.Mesh.AxisAlignedBoundingBox);
-                OBBox projectedBox = OBBox.TranformOBBox(localToProj, meshBox);
-
-                //we pass the wObject to the culler
-                CullResult objectVisibility = Culler.IsOBBoxInsideClipSpace(projectedBox);
-
-                if (objectVisibility != CullResult.Outside)
-                {
-                    //if the object is partially visible we can skip che clipping stage when rendering
-                    bool needsClipping = true; //(objectVisibility == CullResult.Partial);
-                    RenderObject(wObject, localToProj, viewportMatrix, debugInfo, needsClipping);
-                    if (needsClipping)
-                    {
-                        Interlocked.Increment(ref debugInfo.ObjectsNeedClipping);
-                    }
-                    else
-                    {
-                        Interlocked.Increment(ref debugInfo.ObjectsTotallyInsideAfterBoxClipping);
-                    }
-                }
-            }
-            else
-            {
-                //we don't need to cull, which means we don't need to clip either
-                RenderObject(wObject, localToProj, viewportMatrix, debugInfo, false);    //<--- should be false !!!
-            }
             
+            //we get the mesh localbox in OBB format and we transform it to clip space for easy culling
+            OBBox meshBox = new OBBox(wObject.Mesh.AxisAlignedBoundingBox);
+            OBBox projectedBox = OBBox.TranformOBBox(localToProj, meshBox);
+
+            //we pass the wObject to the culler
+            CullResult objectVisibility = Culler.IsOBBoxInsideClipSpace(projectedBox);
+
+            if (objectVisibility != CullResult.Outside)
+            {              
+                RenderObject(wObject, localToProj, viewportMatrix, debugInfo);               
+            }  
         }
 
         private void Render()
@@ -180,13 +162,11 @@ namespace _3dGraphics
             _renderTarget.Clear();
             
             //we run the Quadtree culling in order to determine which object to exclude, which object to check and which object to immediately render
-            List<WorldObject> objsNeedCulling = new List<WorldObject>();
-            List<WorldObject> objsReadyToRender = new List<WorldObject>();
-            Culler.FillCullAndRenderListsFromQuadtree(_world.QuadTree, worldToProj, objsNeedCulling, objsReadyToRender);
+            List<WorldObject> objsNeedCulling = new List<WorldObject>();           
+            Culler.FillCullAndRenderListsFromQuadtree(_world.QuadTree, worldToProj, objsNeedCulling);
 
             //we render each object concurrently (every task will also render each fragment concurrently)            
-            Parallel.ForEach(objsNeedCulling, (wObj) => CullAndRenderObject(wObj, worldToProj, viewportMatrix, true, debugInfo));
-            Parallel.ForEach(objsReadyToRender, (wObj) => CullAndRenderObject(wObj, worldToProj, viewportMatrix, false, debugInfo));
+            Parallel.ForEach(objsNeedCulling, (wObj) => CullAndRenderObject(wObj, worldToProj, viewportMatrix, debugInfo));           
 
             //preparing text to display in the console
             StringBuilder consoleSB = new StringBuilder();
@@ -201,14 +181,9 @@ namespace _3dGraphics
             consoleSB.AppendLine(String.Format("FOV: {0:F3}", _world.Camera.FOV));
             consoleSB.AppendLine();
             consoleSB.AppendLine(String.Format("Total objects: {0}", _world.ObjectCount));
-            consoleSB.AppendLine(String.Format("Objects rendered: {0}", debugInfo.ObjectsRendered));
-            consoleSB.AppendLine();
-            consoleSB.AppendLine(String.Format("Objects after QT prune: {0}", objsReadyToRender.Count + objsNeedCulling.Count));
-            consoleSB.AppendLine(String.Format("Objects totally inside after prune: {0}", objsReadyToRender.Count));
-            consoleSB.AppendLine(String.Format("Objects need Box check: {0}", objsNeedCulling.Count));            
-            consoleSB.AppendLine(String.Format("Objects totally inside after box check: {0}", debugInfo.ObjectsTotallyInsideAfterBoxClipping));
-            consoleSB.AppendLine(String.Format("Objects clipped: {0}", debugInfo.ObjectsNeedClipping));
-            consoleSB.AppendLine();
+            consoleSB.AppendLine(String.Format("Objects after QT prune: {0}", objsNeedCulling.Count));
+            consoleSB.AppendLine(String.Format("Objects rendered: {0}", debugInfo.ObjectsRendered));           
+            consoleSB.AppendLine();                               
             consoleSB.AppendLine(String.Format("Vertices: {0}", debugInfo.NumVerticesFromObjects));
             consoleSB.AppendLine(String.Format("Triangles (meshes): {0}", debugInfo.NumTrianglesFromObjects));
             consoleSB.AppendLine(String.Format("Triangles (facing): {0}", debugInfo.NumTrianglesSentToClip));
@@ -264,7 +239,7 @@ namespace _3dGraphics
             }
         }       
 
-        private void RenderObject(WorldObject wObject, Matrix4x4 localToProj, Matrix4x4 viewportMatrix, DebugInfo debugInfo, bool needsClipping) 
+        private void RenderObject(WorldObject wObject, Matrix4x4 localToProj, Matrix4x4 viewportMatrix, DebugInfo debugInfo) 
         {            
             Mesh mesh = wObject.Mesh;                       //store to avoid repetitive calls
             int numVertices = mesh.VertexCount;             //store to avoid repetitive calls
@@ -337,36 +312,22 @@ namespace _3dGraphics
             int numTrianglesToClip = trianglesToClip.Count;
             List<Triangle> trianglesToRender = new List<Triangle>(numTrianglesToClip);
 
-            //triangle clipping
-            if (needsClipping)
+            //triangle clipping           
+            for (int tIndex = 0; tIndex < numTrianglesToClip; tIndex++)
             {
-                for (int tIndex = 0; tIndex < numTrianglesToClip; tIndex++)
+                List<Triangle> clipResults = Clipper.ClipTriangleAndAppendNewVerticesAndTriangles(trianglesToClip[tIndex], vertices4D, verticesMask);
+
+                //we need to transform the texels (divide by W) while we still have a W
+                int resultCount = clipResults.Count;
+
+                for (int i = 0; i < resultCount; i++)
                 {
-                    List<Triangle> clipResults = Clipper.ClipTriangleAndAppendNewVerticesAndTriangles(trianglesToClip[tIndex], vertices4D, verticesMask);
-
-                    //we need to transform the texels (divide by W) while we still have a W
-                    int resultCount = clipResults.Count;
-
-                    for (int i = 0; i < resultCount; i++)
-                    {
-                        Triangle t = clipResults[i];
-                        Triangle transfT = new Triangle(t.V1Index, t.V2Index, t.V3Index, t.T1 / vertices4D[t.V1Index].W, t.T2 / vertices4D[t.V2Index].W, t.T3 / vertices4D[t.V3Index].W, t.LightIntensity);
-
-                        trianglesToRender.Add(transfT);
-                    }
-                }
-            }
-            else
-            {
-                //we still have to trasform every triangle
-                for(int i=0; i < numTrianglesToClip; i++)
-                {
-                    Triangle t = trianglesToClip[i];
+                    Triangle t = clipResults[i];
                     Triangle transfT = new Triangle(t.V1Index, t.V2Index, t.V3Index, t.T1 / vertices4D[t.V1Index].W, t.T2 / vertices4D[t.V2Index].W, t.T3 / vertices4D[t.V3Index].W, t.LightIntensity);
 
                     trianglesToRender.Add(transfT);
                 }
-            }
+            }          
              
             //here we can free trianglesToClip            
             trianglesToClip = null;            

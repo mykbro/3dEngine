@@ -8,9 +8,7 @@ namespace _3dGraphics.Graphics
 {
     public class DebugInfo      //not a struct because we need to share this by reference
     {
-        public int ObjectsRendered;
-        public int ObjectsNeedClipping;
-        public int ObjectsTotallyInsideAfterBoxClipping;        
+        public int ObjectsRendered;         
         public int NumVerticesFromObjects;
         public int NumTrianglesFromObjects;
         public int NumTrianglesSentToClip;
