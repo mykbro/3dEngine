@@ -26,10 +26,10 @@ namespace _3dGraphics.Graphics
         public float CameraRotSpeedDegSec { get => Utility.RadToDeg(_cameraRotSpeedRadSec); set => Utility.DegToRad(value); }
         
         //
-        public World(int screenWidth, int screenHeight, float cameraFov, float cameraZNear, float cameraZFar, float cameraSpeedKmh, float cameraRotSpeedDegSec, float fovIncSpeedDegSec, float halfSize)
+        public World(int screenWidth, int screenHeight, float cameraFov, float cameraZNear, float cameraZFar, float cameraSpeedKmh, float cameraRotSpeedDegSec, float fovIncSpeedDegSec, float halfSize, int octreeMaxDepth)
         {
             _worldObjects = new List<WorldObject>();
-            _octree = new Octree<WorldObject>(halfSize, 8);     //we hardwire the depth value
+            _octree = new Octree<WorldObject>(halfSize, octreeMaxDepth);     
             _camera = new Camera(screenWidth, screenHeight, cameraFov, cameraZNear, cameraZFar);
             _cameraSpeedMetersSec = cameraSpeedKmh / 3.6f;
             _cameraRotSpeedRadSec = Utility.DegToRad(cameraRotSpeedDegSec);

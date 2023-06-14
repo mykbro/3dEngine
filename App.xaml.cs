@@ -63,27 +63,32 @@ namespace _3dGraphics
 
         private void CreateWorld(int screenWidth, int screenHeight)
         {  
-            //world parameters
+            //## World parameters
             float FOV = 90f;
             float zNear = 0.05f;
             float zFar = 75;
+            
             float speedKmh = 6f;
             float rotSpeedDegSec = 60f;
             float fovIncSpeedDegSec = 30f;
+            
             float worldspaceHalfSizeMeters = 512f;
+            int octreeMaxDepth = 8;
 
-            //we create the world and populate it with objects
-            _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec, worldspaceHalfSizeMeters);
-
-            //GenerateManyObjects();            
+            // We create the world and populate it with objects
+            _world = new World(screenWidth, screenHeight, FOV, zNear, zFar, speedKmh, rotSpeedDegSec, fovIncSpeedDegSec, worldspaceHalfSizeMeters, octreeMaxDepth);
+            
+            //## WorldObject creation
             Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\Ganesha\Ganesha.obj.txt", true);
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\alduin\alduin.obj.txt", true);
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\teapot.txt", false);
             //Mesh objToLoad = LoadMeshFromObjFile(@"D:\Objs\dragon.txt", false);
 
-            _world.AddWorldObject(new WorldObject(objToLoad, Vector3.Zero, 1f));       
+            _world.AddWorldObject(new WorldObject(objToLoad, Vector3.Zero, 1f));
 
+            //GenerateManyObjects();
 
+            //## Camera placement
             _world.Camera.MoveBy(new Vector3(0f, 3f, -6f));
             //_world.Camera.MoveBy(new Vector3(0.5f, 3f, 0.5f));
             //_world.Camera.RotateBy(new Vector3(1.5f, 4f, 0));
@@ -101,10 +106,11 @@ namespace _3dGraphics
             
             */
 
+            //## Texture loading
             //_myTexture = new Texture(@"D:\Objs\alduin\alduin.jpg");
             _myTexture = new Texture(@"D:\Objs\Ganesha\Ganesha.png");
-            //_myTexture = new Texture(@"D:\Objs\white.bmp");
-            //_myTexture = new Texture(@"D:\Objs\smile.bmp");
+            //_myTexture = new Texture(@"D:\Objs\_textures\white.bmp");
+            //_myTexture = new Texture(@"D:\Objs\_textures\smile.bmp");
         }
 
         private void GenerateManyObjects()
@@ -324,7 +330,7 @@ namespace _3dGraphics
             {
                 List<Triangle> clipResults = Clipper.ClipTriangleAndAppendNewVerticesAndTriangles(trianglesToClip[tIndex], vertices4D, verticesMask);
 
-                //we need to transform the texels (divide by W) while we still have a W
+                //we need to transform the texture coords (divide by W) while we still have W
                 int resultCount = clipResults.Count;
 
                 for (int i = 0; i < resultCount; i++)
@@ -336,7 +342,7 @@ namespace _3dGraphics
                 }
             }          
              
-            //here we can free trianglesToClip            
+            //here we can free trianglesToClip for early memory requisition           
             trianglesToClip = null;            
 
 
