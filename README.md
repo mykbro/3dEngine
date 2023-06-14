@@ -109,7 +109,7 @@ As we didn't quite manage to implement the scanline algorithm correctly (an atte
 
 ## How should I use this ?
 
-Please check the 'Resources' folder for some samples to test this app.
+Please check the 'Resources' package for some samples to test this app.
 
 ### User inputs
 
