@@ -110,6 +110,7 @@ As we didn't quite manage to implement the scanline algorithm correctly (an atte
 ## How should I use this ?
 
 Please check the 'Resources' package for some samples to test this app.
+Unzip it to a folder.
 
 ### User inputs
 
@@ -213,7 +214,45 @@ If you cannot see anything please check:
 
 If the texturing is wrong please check the previous section and tune the textureCoords.Add(new Vector3(u, 1-v, 1f)) call accordingly.
 
+### Settings for the provided samples
+Here are the settings to use for some of the provided samples:
 
+* CUBE  
+    - LoadMeshFromObjFile(@"<your_path>\cube.txt", useTextures: true);
+    - AddWorldObject(..., scaling: 1f)
+    - textureCoords.Add(new Vector3(u, v, 1f));
+    - _myTexture = new Texture(@"<your_path>\_textures\smile.png"); //or smile.bmp  
+* TEAPOT  
+    - LoadMeshFromObjFile(@"<your_path>\teapot.txt", useTextures: false);
+    - AddWorldObject(..., scaling: 1f)
+    - textureCoords.Add(new Vector3(u, v, 1f));
+    - _myTexture = new Texture(@"<your_path>\_textures\white.bmp"); 
+* DRAGON  
+    - LoadMeshFromObjFile(@"<your_path>\teapot.txt", useTextures: false);
+    - AddWorldObject(..., dragon: 1f)
+    - textureCoords.Add(new Vector3(u, v, 1f));
+    - _myTexture = new Texture(@"<your_path>\_textures\white.bmp"); 
+* BUNNY  
+    - LoadMeshFromObjFile(@"<your_path>\bunny.txt", useTextures: false);
+    - AddWorldObject(..., scaling: 1f)
+    - textureCoords.Add(new Vector3(u, v, 2f));
+    - _myTexture = new Texture(@"<your_path>\_textures\white.bmp"); 
+* ALDUIN  
+    - LoadMeshFromObjFile(@"<your_path>\Alduin\alduin.obj.txt", useTextures: true);
+    - AddWorldObject(..., scaling: 0.01f)
+    - textureCoords.Add(new Vector3(u, v, 1f));
+    - _myTexture = new Texture(@"<your_path>\Alduin\alduin.jpg"); 
+* GANESHA  
+    - LoadMeshFromObjFile(@"<your_path>\Ganesha\Ganesha.obj.txt", useTextures: true);
+    - AddWorldObject(..., scaling: 1f)
+    - textureCoords.Add(new Vector3(u, 1-v, 1f));
+    - _myTexture = new Texture(@"<your_path>\Ganesha\Ganesha.png"); 
+
+
+
+
+
+  
 
 
 
