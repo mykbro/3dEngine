@@ -1,4 +1,4 @@
-# 3dGraphics
+# 3dEngine
 
 ## Disclaimer
 This codebase is made for self-teaching and educational purposes only.
